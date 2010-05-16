@@ -1,0 +1,21 @@
+provider: ec2
+provider_config:
+  aws_account_id: XXXX-XXXX-XXXX
+  aws_access_key: XXXXXXXXXXXXXXXXXXXX
+  aws_secret_access_key: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  keypair_name: maestro-test-keypair
+  keypair_file: /home/foo/id_rsa-maestro-test-keypair
+
+roles:
+  web:
+    public_ports: [80, 443]
+  db-master: {}
+
+nodes:
+  test-1.maestro-rails-test.node:
+    # Node -> Role mapping
+    roles: [web, db-master]
+    provider_config:
+      ami: ami-XXXXXXXX
+      instance_type: m1.small
+      availability_zone: us-east-1b

@@ -1,0 +1,9 @@
+{
+  "name": "default",
+  "chef_type": "role",
+  "json_class": "Chef::Role",
+  "description": "The default role for all nodes.",
+  "run_list": [
+    "recipe[emacs]"
+  ]
+}

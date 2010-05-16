@@ -1,0 +1,9 @@
+{
+  "name": "web",
+  "chef_type": "role",
+  "json_class": "Chef::Role",
+  "description": "The base role for nodes that serve HTTP traffic",
+  "run_list": [
+    "role[default]"
+  ]
+}

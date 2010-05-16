@@ -1,0 +1,367 @@
+= Maestro: Orchestrate your clouds
+
+Maestro is a cloud provisioning, configuration, and deployment utility for your Ruby and Ruby On Rails applications.
+Simply declare the structure of your clouds via configuration files, create Chef[link:http://wiki.opscode.com/display/chef/Home]
+recipes to configure the nodes in your clouds, and Maestro takes care of the rest.
+
+Maestro currently supports the Amazon Web Services cloud. Support for other cloud providers is on the roadmap.
+
+Maestro currently supports the following Linux distributions:
+
+ Ubuntu (9.10, 9.04, 8.10, 8.04)
+ Debian (6.0, 5.0)
+ Fedora (8)
+ CentOS (5.4)
+
+
+== Using Maestro with Ruby On Rails
+
+=== Installation
+
+Add the following gem dependency to your Rails project's <code>config/environment.rb</code> file:
+
+    Rails::Initializer.run do |config|
+
+      config.gem "maestro", :version => '0.1.0'
+
+    end
+
+You'll interact with Maestro through custom Rake tasks that Maestro adds to your Rails project. Until this[link:https://rails.lighthouseapp.com/projects/8994/tickets/59] Rails issue is resolved, you'll need to add this to your Rails project's Rakefile:
+
+    require 'maestro/tasks'
+
+=== Configuration
+
+To enable Maestro, create the following Maestro directory structure within your Rails project's config/ directory:
+
+  YOUR_RAILS_APP/config/maestro/clouds/ - the directory which contains your cloud configuration files
+  YOUR_RAILS_APP/config/maestro/cookbooks/ - the directory which contains your Chef cookbooks
+  YOUR_RAILS_APP/config/maestro/roles/ - the directory which contains your Chef roles
+
+
+==== Declare your clouds
+
+To declare a cloud, simply create a configuration file within your Rails project's <code>YOUR_RAILS_APP/config/maestro/clouds/</code> directory with the same name as your cloud.
+For example, to create "dev", "staging", and "production" clouds, your <code>YOUR_RAILS_APP/config/maestro/clouds/</code> directory would contain the following files:
+
+  YOUR_RAILS_APP/config/maestro/clouds/dev.rb
+  YOUR_RAILS_APP/config/maestro/clouds/staging.rb
+  YOUR_RAILS_APP/config/maestro/clouds/production.rb
+
+A cloud configuration file is a Ruby file containing a simple DSL for describing the structure of a cloud for a given cloud provider. Currently the Amazon Web Services cloud is the only supported provider.
+
+
+==== Amazon Web Services Cloud pre-requisites
+
+To use the Amazon Web Services cloud provider, the following are required:
+
+- An Amazon Web Services Account
+- EC2 enabled in your account
+- S3 enabled in your account
+- AWS Account ID
+- AWS Access Key
+- AWS Secret Access Key
+- AWS Keypair name and keypair file stored locally
+
+You may optionally utilize all other features of the Amazon Web Services cloud infrastructure, such as ELB, RDS, etc, assuming
+that these capabilities are enabled in your Amazon Web Services account. See the Amazon Web Services documentation for more information.
+
+==== Anatomy of an Amazon Web Services cloud configuration file
+
+  
+  aws_cloud :dev do
+    
+    keypair_name "XXXXXXX-keypair"
+    keypair_file "/path/to/id_rsa-XXXXXXX-keypair"
+    aws_account_id "XXXX-XXXX-XXXX"
+    aws_access_key "XXXXXXXXXXXXXXXXXXXX"
+    aws_secret_access_key "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+    chef_bucket "maestro.yourdomain.com"
+    
+    roles do
+      role "web" do
+        public_ports [80, 443]
+      end
+    end
+    
+    nodes do
+      ec2_node "web-1" do
+        roles ["web"]
+        ami "ami-bb709dd2"
+        ssh_user "ubuntu"
+        instance_type "m1.small"
+        availability_zone "us-east-1b"
+      end
+      
+      ...etc...
+    end
+  end
+
+
+Let's look at each of these sections in more detail:
+
+===== aws_cloud <i>cloud_name</i> do
+
+The aws_cloud method declares an Amazon Web Services cloud with the given name. The cloud name can be either a symbol or a string.
+
+  aws_cloud :dev do
+
+  aws_cloud "dev" do
+
+A cloud name may only contain alphanumerics and dashes.
+
+===== AWS cloud attributes
+
+The following attributes must be present after your aws_cloud declaration:
+
+- <b>keypair_name</b>: A keypair associated with your Amazon Web Services account
+- <b>keypair_file</b>: Fully qualified path to the keypair file on your computer matching the above keypair_name
+- <b>aws_account_id</b>: Your Amazon Web Services Account ID
+- <b>aws_access_key</b>: Your Amazon Web Services Access Key
+- <b>aws_secret_access_key</b>: Your Amazon Web Services Secret Access Key
+- <b>chef_bucket</b>: The name of the Amazon S3 Bucket where you want your Chef recipes and roles stored. If this Bucket does not exist, Maestro will create it for you. Please note that the Bucket itself, and all objects stored within the Bucket use the canned 'private' access policy, meaning no one but the Bucket owner (i.e. you) may access the Bucket or the objects within it. Maestro uses query string authentication when accessing the objects to ensure the integrity of your data.
+
+
+===== roles do
+The <code>roles</code> method allows you to apply configuration to all of the nodes in your cloud which are in a given role, rather than repeating that configuration for all nodes individually.
+
+===== role <i>role_name</i> do
+A role corresponds to a Chef role that the configurable nodes in your Cloud can play. A role name may either be a symbol or a string.
+
+    role "web" do
+      public_ports [80, 443]
+    end
+
+A role name may only contain alphanumerics and dashes.
+
+===== role attributes
+
+A role may configure the following attributes:
+
+- <b>public_ports</b>: The ports that should be open to the public internet, for example ports 80 and 443 for a web role. The value of this attribute must be an array of integers.
+
+
+===== nodes do
+The <code>nodes</code> method is where you define the nodes (servers, machine, VMs, devices, etc…) in your cloud.
+
+===== AWS Node types
+
+The following are the AWS node types supported by Maestro:
+
+<b><code>ec2_node <i>node-name</i> do</code></b>
+
+Creates an Elastic Cloud Compute (EC2) node. An EC2 node name may only contain alphanumerics and dashes.
+
+The following attributes must be present:
+
+- <b>roles</b>: An array of Chef roles to apply to this node. The role names in the array must match the Chef roles that are defined in config/maestro/roles.
+- <b>ami</b>: The AMI identifier to use.
+- <b>ssh_user</b>: The name of the user to use to ssh to the instance.
+- <b>instance_type</b>: The instance type to use for this EC2 node.
+- <b>availability_zone</b>: The availability zone to launch the instance in.
+
+The following attributes are optional:
+
+- <b>elastic_ip</b>: The Elastic IP address to associate with this node.
+- <b>ebs_volume_id</b>: The id of the EBS Volume to attach to this node.
+- <b>ebs_device</b>: The device to attach the EBS Volume to.
+
+An example ec2_node:
+
+    ec2_node "node-1" do
+      roles ["role-1"]
+      ami "ami-bb709dd2"
+      ssh_user "ubuntu"
+      instance_type "m1.small"
+      availability_zone "us-east-1b"
+      elastic_ip "123.45.678.90"
+      ebs_volume_id "vol-xxxxxxxx"
+      ebs_device "/dev/sdh"
+    end
+
+
+<b><code>elb_node <i>node-name</i> do</code></b>
+
+Creates an Elastic Load Balancer (ELB) node. An ELB node name may only contain alphanumerics and dashes.
+
+The following attributes must be present:
+
+- <b>availability_zones</b>: An array of availability zone names this ELB node will operate in.
+- <b>listeners</b>: An array of hashes configuring the ELB listeners.
+- <b>ec2_nodes</b>: An array of EC2 node names that this ELB fronts.
+- <b>health_check</b>: A hash configuring the health check of this ELB.
+
+An example elb_node:
+
+    elb_node "lb-1" do
+      availability_zones ["us-east-1b"]
+      listeners [{:load_balancer_port => 80, :instance_port => 80, :protocol => "http"}]
+      ec2_nodes ["app-1", "app-2"]
+      health_check(:target => "TCP:80", :timeout => 15, :interval => 60, :unhealthy_threshold => 5, :healthy_threshold => 3)
+    end
+
+
+<b><code>rds_node <i>node-name</i> do</code></b>
+
+Creates a Relational Database Service (RDS) node. An RDS node name may only contain alphanumerics and dashes.
+
+The following attributes must be present:
+
+- <b>engine</b>: The name of the database engine to use.
+- <b>db_instance_class</b>: The instance class to use.
+- <b>master_username</b>: The master user's username.
+- <b>master_user_password</b>: The master user's password.
+- <b>port</b>: The port this RDS node should listen on.
+- <b>allocated_storage</b>: The storage to allocate (in GB).
+- <b>availability_zone</b>: The availability zone to launch this RDS node in.
+- <b>preferred_maintenance_window</b>: The preferred 4 hour window in which to run maintenance.
+- <b>preferred_backup_window</b>: The preferred 2 hour window in which backups should run.
+- <b>backup_retention_period</b>: The number of days to retain backups.
+
+The following attributes are optional:
+
+- <b>db_parameters</b>: An array of hashes containing "name" and "value" keys representing database parameters.
+
+An example rds_node:
+
+    rds_node "db-2" do
+      engine "MySQL5.1"
+      db_instance_class "db.m1.small"
+      master_username "root"
+      master_user_password "password"
+      port 3306
+      allocated_storage 5
+      availability_zone "us-east-1b"
+      preferred_maintenance_window "Sun:03:00-Sun:07:00"
+      preferred_backup_window "03:00-05:00"
+      backup_retention_period 7
+      db_parameters [{:name => "character_set_server", :value => "utf8"},
+                     {:name => "collation_server", :value => "utf8_bin"},
+                     {:name => "long_query_time", :value => "5"}]
+    end
+
+
+===== A note about node definitions
+
+If your cloud has a large number of nodes which are identical other than their name, defining each node individually with a node method would be tedious.
+Don't forget that your cloud definition files are Ruby, which allows you to do things like the following:
+
+    nodes do
+      10.times do |i|
+        ec2_node "web-#{i+1}" do
+          .......
+        end
+      end
+    end
+
+This will create 10 different ec2_nodes, each with a distinct name ("web-1" through "web-10").
+
+
+==== Configure your nodes
+
+Maestro uses the Chef[link:http://wiki.opscode.com/display/chef/Home] framework to configure the nodes in your cloud.
+
+==== Validate your configuration
+
+At any time, you may run the following Rake task to validate your Maestro configurations:
+
+    rake maestro:validate_configs
+
+This will validate all of the files in your Maestro config directory
+
+=== Orchestrate
+
+Maestro creates Rake tasks for all of your valid clouds. These tasks allow you to provision, configure, and deploy to your cloud.
+A very simplistic workflow:
+
+    rake maestro:validate_configs
+    
+    rake maestro:mycloud:status
+    rake maestro:mycloud:start
+    rake maestro:mycloud:configure
+    rake maestro:mycloud:shutdown
+
+If you do not see a maestro:<i>cloud-name</i>:... set of tasks for a named cloud when running rake -T, your cloud configuration file is not valid. Simply run...
+
+    rake maestro:validate_configs
+
+...and you will be given a report as to what is wrong with the given cloud configuration file.
+
+To see all available rake commands for all of your clouds:
+
+    rake -T | grep maestro
+
+== Using Maestro with a stand alone Ruby application
+
+    sudo gem install maestro
+
+TODO...
+
+
+== Contributing
+Please use the Issues[link:http://github.com/bploetz/maestro/issues] page on the Maestro GitHub site to report bugs or feature requests.
+
+To contribute fixes for Issues, please create a topic branch off of the appropriate branch and send a pull request indicating which Issue the commit is for.
+All bug fixes must have a corresponding unit and/or integration test (depending on the nature of the Issue) in order to be accepted.
+
+To run the unit tests:
+
+    rake test:units
+
+To run all integration tests:
+
+    rake test:integration
+    
+To run just the AWS integration tests (please see <code>test/integration/base_aws.rb</code> for instructions on how to supply your AWS credentials to run the tests):
+
+    rake test:integration:aws
+
+Due to the nature of the AWS integration tests, they take quite a long time to run (well over an hour), so you may want to grab a beer or 3 to pass the time.
+
+To run just the operating system integration tests:
+
+    rake test:integration:centos
+    rake test:integration:debian
+    rake test:integration:fedora
+    rake test:integration:ubuntu
+
+Be mindful of the code coverage metrics. We try to maintain a > 85% coverage percentage, and any pull requests should not result in a lower percentage unless for a very good reason.
+
+To run RCov:
+
+    rake rcov
+
+To install the gem locally:
+
+    rake install
+
+To generate RDoc locally:
+
+    rake rdoc
+
+
+== License
+
+(The MIT License) 
+
+Copyright (c) 2010 Brian Ploetz <bploetz@gmail.com>
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
