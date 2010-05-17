@@ -19,8 +19,60 @@ module Maestro
   # Directory underneath RAILS_ROOT where Maestro expects to find config files
   MAESTRO_RAILS_CONFIG_DIRECTORY = '/config/maestro'
 
+  # Directory underneath RAILS_ROOT where Maestro log files will be written
+  MAESTRO_RAILS_LOG_DIRECTORY = '/log/maestro'
+
   # Name of the Maestro Chef assets archive
   MAESTRO_CHEF_ARCHIVE = 'maestro_chef_assets.tar.gz'
+
+
+  # Creates the Maestro config directory structure. If the directories already exist, no action is taken.
+  #
+  # In a Rails environment:
+  #
+  #     RAILS_ROOT/config/maestro
+  #     RAILS_ROOT/config/maestro/clouds
+  #     RAILS_ROOT/config/maestro/cookbooks
+  #     RAILS_ROOT/config/maestro/roles
+  #
+  # In a standalone environment, the following directories will be created under
+  # the directory specified by the ENV['MAESTRO_DIR'] environment variable:
+  #
+  #     MAESTRO_DIR/config/maestro
+  #     MAESTRO_DIR/config/maestro/clouds
+  #     MAESTRO_DIR/config/maestro/cookbooks
+  #     MAESTRO_DIR/config/maestro/roles
+  def self.create_config_dirs
+    if defined? RAILS_ROOT
+      create_configs(rails_config_dir)
+    elsif ENV.has_key? MAESTRO_DIR_ENV_VAR
+      create_configs(standalone_config_dir)
+    else
+      raise "Maestro not configured correctly. Either RAILS_ROOT or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
+    end
+  end
+
+  # Creates the Maestro log directories. If the directories already exist, no action is taken.
+  #
+  # In a Rails environment:
+  #
+  #     RAILS_ROOT/log/maestro
+  #     RAILS_ROOT/log/maestro/clouds
+  #
+  # In a standalone environment, the following directories will be created under
+  # the directory specified by the ENV['MAESTRO_DIR'] environment variable:
+  #
+  #     MAESTRO_DIR/log/maestro
+  #     MAESTRO_DIR/log/maestro/clouds
+  def self.create_log_dirs
+    if defined? RAILS_ROOT
+      create_logs(rails_log_dir)
+    elsif ENV.has_key? MAESTRO_DIR_ENV_VAR
+      create_logs(standalone_log_dir)
+    else
+      raise "Maestro not configured correctly. Either RAILS_ROOT or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
+    end
+  end
 
   # Validates your maestro configs. This method returns an Array with two elements:
   # * element[0] boolean indicating whether your maestro configs are valid
@@ -41,6 +93,17 @@ module Maestro
       get_clouds(clouds_config_dir(rails_config_dir))
     elsif ENV.has_key? MAESTRO_DIR_ENV_VAR
       get_clouds(clouds_config_dir(standalone_config_dir))
+    else
+      raise "Maestro not configured correctly. Either RAILS_ROOT or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
+    end
+  end
+
+  # Returns the log directory
+  def self.log_directory
+    if defined? RAILS_ROOT
+      rails_config_dir
+    elsif ENV.has_key? MAESTRO_DIR_ENV_VAR
+      standalone_config_dir
     else
       raise "Maestro not configured correctly. Either RAILS_ROOT or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
     end
@@ -87,14 +150,72 @@ module Maestro
 
   private
 
+  # Creates the Maestro config directory structure in the given directory
+  #
+  # - dir: The base directory in which to create the maestro config directory structure
+  def self.create_configs(dir)
+    raise "Cannot create Maestro config directory structure: #{dir} doesn't exist." if !File.exist?(dir)
+    raise "Cannot create Maestro config directory structure: #{dir} is not a directory." if !File.directory?(dir)
+    raise "Cannot create Maestro config directory structure: #{dir} is not writable." if !File.writable?(dir)
+    base_dir = dir
+    base_dir.chop! if base_dir =~ /\/$/
+    if File.exist?("#{base_dir}/maestro")
+      puts "#{base_dir}/maestro already exists"
+    else
+      Dir.mkdir("#{base_dir}/maestro")
+      puts "Created #{base_dir}/maestro"
+    end
+    if File.exist?("#{base_dir}/maestro/clouds")
+      puts "#{base_dir}/maestro/clouds already exists"
+    else
+      Dir.mkdir("#{base_dir}/maestro/clouds")
+      puts "Created #{base_dir}/maestro/clouds"
+    end
+    if File.exist?("#{base_dir}/maestro/cookbooks")
+      puts "#{base_dir}/maestro/cookbooks already exists"
+    else
+      Dir.mkdir("#{base_dir}/maestro/cookbooks")
+      puts "Created #{base_dir}/maestro/cookbooks"
+    end
+    if File.exist?("#{base_dir}/maestro/roles")
+      puts "#{base_dir}/maestro/roles already exists"
+    else
+      Dir.mkdir("#{base_dir}/maestro/roles")
+      puts "Created #{base_dir}/maestro/roles"
+    end
+  end
+
+  # Creates the Maestro config directory structure in the given directory
+  #
+  # - dir: The base directory in which to create the maestro log directory structure
+  def self.create_logs(dir)
+    raise "Cannot create Maestro log directory: #{dir} doesn't exist." if !File.exist?(dir)
+    raise "Cannot create Maestro log directory: #{dir} is not a directory." if !File.directory?(dir)
+    raise "Cannot create Maestro log directory: #{dir} is not writable." if !File.writable?(dir)
+    base_dir = dir
+    base_dir.chop! if base_dir =~ /\/$/
+    if File.exist?("#{base_dir}/maestro")
+      puts "#{base_dir}/maestro already exists"
+    else
+      Dir.mkdir("#{base_dir}/maestro")
+      puts "Created #{base_dir}/maestro"
+    end
+    if File.exist?("#{base_dir}/maestro/clouds")
+      puts "#{base_dir}/maestro/clouds already exists"
+    else
+      Dir.mkdir("#{base_dir}/maestro/clouds")
+      puts "Created #{base_dir}/maestro/clouds"
+    end
+  end
+
   # Validates the maestro configuration found at RAILS_ROOT/config/maestro
   def self.validate_rails_config
-    validate_config rails_config_dir
+    validate_config rails_maestro_config_dir
   end
 
   # Validates the maestro configuration found at ENV['MAESTRO_DIR']
   def self.validate_standalone_config
-    validate_config standalone_config_dir
+    validate_config standalone_maestro_config_dir
   end
 
   # Validates the maestro configuration found at the given maestro_directory
@@ -155,11 +276,27 @@ module Maestro
   end
 
   def self.rails_config_dir
+    "#{RAILS_ROOT}/config"
+  end
+
+  def self.rails_log_dir
+    "#{RAILS_ROOT}/log"
+  end
+
+  def self.rails_maestro_config_dir
     "#{RAILS_ROOT}#{MAESTRO_RAILS_CONFIG_DIRECTORY}"
   end
 
-  def self.standalone_config_dir
+  def self.standalone_maestro_config_dir
     "#{ENV[MAESTRO_DIR_ENV_VAR]}#{MAESTRO_RAILS_CONFIG_DIRECTORY}"
+  end
+
+  def self.standalone_config_dir
+    "#{ENV[MAESTRO_DIR_ENV_VAR]}/config"
+  end
+
+  def self.standalone_log_dir
+    "#{ENV[MAESTRO_DIR_ENV_VAR]}/log"
   end
 
   def self.clouds_config_dir(maestro_directory)

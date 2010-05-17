@@ -32,11 +32,17 @@ You'll interact with Maestro through custom Rake tasks that Maestro adds to your
 
 === Configuration
 
-To enable Maestro, create the following Maestro directory structure within your Rails project's config/ directory:
+To create the Maestro configuration directory structure, run the following Rake task:
+
+  rake maestro:create_config_dirs
+
+This will create the following directory structure within your Rails project's config/ directory:
 
   YOUR_RAILS_APP/config/maestro/clouds/ - the directory which contains your cloud configuration files
   YOUR_RAILS_APP/config/maestro/cookbooks/ - the directory which contains your Chef cookbooks
   YOUR_RAILS_APP/config/maestro/roles/ - the directory which contains your Chef roles
+
+If these directories already exist when running <code>rake maestro:create_config_dirs</code>, no action is taken.
 
 
 ==== Declare your clouds
@@ -53,7 +59,7 @@ A cloud configuration file is a Ruby file containing a simple DSL for describing
 
 ==== Amazon Web Services Cloud pre-requisites
 
-To use the Amazon Web Services cloud provider, the following are required:
+To use the Amazon Web Services cloud provider, the following are minimally required:
 
 - An Amazon Web Services Account
 - EC2 enabled in your account

@@ -44,13 +44,13 @@ class TestAwsCloud < Test::Unit::TestCase
             availability_zone "us-east-1b"
           end
 
-#          ec2_node "node-2" do
-#            roles ["web"]
-#            ami "ami-bb709dd2"
-#            ssh_user "ubuntu"
-#            instance_type "m1.small"
-#            availability_zone "us-east-1b"
-#          end
+          ec2_node "node-2" do
+            roles ["web"]
+            ami "ami-bb709dd2"
+            ssh_user "ubuntu"
+            instance_type "m1.small"
+            availability_zone "us-east-1b"
+          end
 
           rds_node "db-1" do
             engine "MySQL5.1"
@@ -77,38 +77,38 @@ class TestAwsCloud < Test::Unit::TestCase
     #######################
 
     teardown do
-#      # terminate ec2 instances
-#      instances = @ec2.describe_instances
-#      to_be_terminated = Array.new
-#      to_be_watched = Array.new
-#      @cloud.ec2_nodes.each_pair do |node_name, node|
-#        instance = @cloud.find_ec2_node_instance(node_name, instances)
-#        if !instance.nil?
-#          to_be_terminated << instance.instanceId
-#          to_be_watched << node_name
-#        end
-#      end
-#      if !to_be_terminated.empty?
-#        puts "Terminating AWS integration test EC2 instances"
-#        @ec2.terminate_instances(:instance_id => to_be_terminated)
-#      end
-#      STDOUT.sync = true
-#      print "Waiting for Nodes #{to_be_watched.inspect} to terminate..." if !to_be_watched.empty?
-#      while !to_be_watched.empty?
-#        instances =  @ec2.describe_instances()
-#        to_be_watched.each do |node_name|
-#          instance = @cloud.find_ec2_node_instance(node_name, instances)
-#          if instance.nil?
-#            puts ""
-#            puts "Node #{node_name} terminated"
-#            to_be_watched.delete(node_name)
-#            print "Waiting for Nodes #{to_be_watched.inspect} to terminate..." if !to_be_watched.empty?
-#          else
-#            print "."
-#          end
-#        end
-#        sleep 5 if !to_be_watched.empty?
-#      end
+      # terminate ec2 instances
+      instances = @ec2.describe_instances
+      to_be_terminated = Array.new
+      to_be_watched = Array.new
+      @cloud.ec2_nodes.each_pair do |node_name, node|
+        instance = @cloud.find_ec2_node_instance(node_name, instances)
+        if !instance.nil?
+          to_be_terminated << instance.instanceId
+          to_be_watched << node_name
+        end
+      end
+      if !to_be_terminated.empty?
+        puts "Terminating AWS integration test EC2 instances"
+        @ec2.terminate_instances(:instance_id => to_be_terminated)
+      end
+      STDOUT.sync = true
+      print "Waiting for Nodes #{to_be_watched.inspect} to terminate..." if !to_be_watched.empty?
+      while !to_be_watched.empty?
+        instances =  @ec2.describe_instances()
+        to_be_watched.each do |node_name|
+          instance = @cloud.find_ec2_node_instance(node_name, instances)
+          if instance.nil?
+            puts ""
+            puts "Node #{node_name} terminated"
+            to_be_watched.delete(node_name)
+            print "Waiting for Nodes #{to_be_watched.inspect} to terminate..." if !to_be_watched.empty?
+          else
+            print "."
+          end
+        end
+        sleep 5 if !to_be_watched.empty?
+      end
 
       # delete ELBs
       balancers = @elb.describe_load_balancers()
@@ -127,10 +127,10 @@ class TestAwsCloud < Test::Unit::TestCase
         end
       end
 
-#      # delete ec2 security groups
-#      @cloud.ec2_security_groups.each do |group_name|
-#        @ec2.delete_security_group(:group_name => group_name)
-#      end
+      # delete ec2 security groups
+      @cloud.ec2_security_groups.each do |group_name|
+        @ec2.delete_security_group(:group_name => group_name)
+      end
 
       # delete RDS instances
       all_instances =  @rds.describe_db_instances
@@ -230,6 +230,23 @@ class TestAwsCloud < Test::Unit::TestCase
         end
       end
       
+      # delete DB snapshots
+      @cloud.rds_nodes.each_pair do |node_name, node|
+        begin
+          snapshots = @rds.describe_db_snapshots(:db_instance_identifier => node.db_instance_identifier)
+          if !snapshots.DescribeDBSnapshotsResult.DBSnapshots.nil?
+            snapshots.DescribeDBSnapshotsResult.DBSnapshots.DBSnapshot.each do |snapshot|
+              if snapshot.respond_to?(:DBSnapshotIdentifier)
+                @rds.delete_db_snapshot(:db_snapshot_identifier => snapshot.DBSnapshotIdentifier)
+                puts "Deleted AWS integration test DB snapshot: #{snapshot.DBSnapshotIdentifier}"
+              end
+            end
+          end
+        rescue AWS::Error => aws_error
+          puts aws_error
+        end
+      end
+      
       ENV.delete Maestro::MAESTRO_DIR_ENV_VAR
     end
 
@@ -238,283 +255,282 @@ class TestAwsCloud < Test::Unit::TestCase
     # Tests
     #######################
 
-#    should "be able to connect to AWS" do
-#      assert_nothing_raised do
-#        @cloud.connect!
-#      end
-#    end
-#
-#    should "report status" do
-#      assert_nothing_raised do
-#        @cloud.connect!
-#        # not running code path
-#        @cloud.status
-#      end
-#    end
-#
-#    should "not have any nodes running" do
-#      instances = @ec2.describe_instances
-#      @cloud.ec2_nodes.each_pair do |node_name, node|
-#        assert @cloud.find_ec2_node_instance(node.name, instances).nil?
-#      end
-#      balancers = @elb.describe_load_balancers
-#      @cloud.elb_nodes.each_pair do |node_name, node|
-#        assert @cloud.find_elb_node_instance(node.name, balancers).nil?
-#      end
-#      db_instances = @rds.describe_db_instances
-#      @cloud.rds_nodes.each_pair do |node_name, node|
-#        assert @cloud.find_rds_node_instance(node.name, balancers).nil?
-#      end
-#    end
-#
-#    should "not have any rds db parameter groups" do
-#      @cloud.db_parameter_groups.each do |group_name|
-#        begin
-#          group = @rds.describe_db_parameter_groups(:db_parameter_group_name => group_name)
-#          assert false
-#        rescue AWS::Error => aws_error
-#          assert aws_error.message.eql? "DBParameterGroup #{group_name} not found."
-#        end
-#      end
-#    end
-#
-#    should "ensure rds db parameter groups" do
-#      assert_nothing_raised do
-#        @cloud.connect!
-#        # doesn't exist code path
-#        @cloud.ensure_rds_db_parameter_groups
-#        assert_rds_db_parameter_groups
-#        # already exists code path
-#        @cloud.ensure_rds_db_parameter_groups
-#        assert_rds_db_parameter_groups
-#      end
-#    end
-#
-#    should "not have any rds db security groups" do
-#      @cloud.db_security_groups.each do |group_name|
-#        begin
-#          group = @rds.describe_db_security_groups(:db_security_group_name => group_name)
-#          assert false
-#        rescue AWS::Error => aws_error
-#          assert aws_error.message.eql? "DBSecurityGroup #{group_name} not found."
-#        end
-#      end
-#    end
-#
-#    should "ensure rds db security groups" do
-#      assert_nothing_raised do
-#        @cloud.connect!
-#        # doesn't exist code path
-#        @cloud.ensure_rds_db_security_groups
-#        assert_rds_db_security_groups
-#        # already exists code path
-#        @cloud.ensure_rds_db_security_groups
-#        assert_rds_db_security_groups
-#      end
-#    end
-#
-#    should "not have any ec2 security groups" do
-#      cloud_security_groups = @cloud.ec2_security_groups
-#      cloud_security_groups.each do |group_name|
-#        security_group =  @ec2.describe_security_groups(:group_name => [group_name])
-#        assert security_group.nil?
-#      end
-#    end
-#
-#    should "ensure ec2 security groups" do
-#      assert_nothing_raised do
-#        @cloud.connect!
-#        # doesn't exist code path
-#        @cloud.ensure_ec2_security_groups
-#        assert_ec2_security_groups_created
-#        assert_role_ec2_security_groups
-#        # already exists code path
-#        @cloud.ensure_ec2_security_groups
-#        assert_ec2_security_groups_created
-#        assert_role_ec2_security_groups
-#      end
-#    end
-#
-#    should "ensure nodes running" do
-#      assert_nothing_raised do
-#        @cloud.connect!
-#        @cloud.ensure_rds_security_groups
-#        @cloud.ensure_rds_db_parameter_groups
-#        @cloud.ensure_ec2_security_groups
-#        @cloud.ensure_rds_db_security_groups
-#        # not running code path
-#        @cloud.ensure_nodes_running
-#        assert_rds_nodes_running
-#        assert_ec2_nodes_running
-#        assert_elb_nodes_running
-#        # already running code path
-#        @cloud.ensure_nodes_running
-#        assert_rds_nodes_running
-#        assert_ec2_nodes_running
-#        assert_elb_nodes_running
-#      end
-#    end
-#
-#    should "not find a bogus elastic ip allocated" do
-#      assert_nothing_raised do
-#        @cloud.connect!
-#        assert !@cloud.elastic_ip_allocated?("127.0.0.1")
-#      end
-#    end
-#
-#    should "find an allocated elastic ip" do
-#      assert_nothing_raised do
-#        @cloud.connect!
-#        elastic_ip = @ec2.allocate_address
-#        assert @cloud.elastic_ip_allocated?(elastic_ip.publicIp)
-#      end
-#    end
-#
-#    should "ensure elastic ips" do
-#      assert_nothing_raised do
-#        @cloud.nodes.delete("lb-1")
-#        @cloud.elb_nodes.delete("lb-1")
-#        @cloud.nodes.delete("db-1")
-#        @cloud.rds_nodes.delete("db-1")
-#        # case 1: associate an Elastic IP to node_1
-#        elastic_ip = @ec2.allocate_address
-#        @cloud.nodes["node-1"].elastic_ip(elastic_ip.publicIp)
-#        @cloud.connect!
-#        @cloud.ensure_ec2_security_groups
-#        @cloud.ensure_nodes_running
-#        @cloud.ensure_elastic_ips
-#        instances = @ec2.describe_instances
-#        instance = @cloud.find_ec2_node_instance("node-1", instances)
-#        instance_id = @cloud.elastic_ip_association(elastic_ip.publicIp)
-#        assert instance_id.eql?(instance.instanceId)
-#        # case 2: disassociate Elastic IP from node_1 and associate with node_2
-#        @cloud.nodes["node-1"].elastic_ip(nil)
-#        @cloud.nodes["node-2"].elastic_ip(elastic_ip.publicIp)
-#        @cloud.ensure_elastic_ips
-#        instances = @ec2.describe_instances
-#        node_1_instance = @cloud.find_ec2_node_instance("node-1", instances)
-#        node_2_instance = @cloud.find_ec2_node_instance("node-2", instances)
-#        instance_id = @cloud.elastic_ip_association(elastic_ip.publicIp)
-#        assert instance_id.eql?(node_2_instance.instanceId)
-#        # case 3: Elastic IP already associated, do nothing
-#        @cloud.ensure_elastic_ips
-#        instance_id = @cloud.elastic_ip_association(elastic_ip.publicIp)
-#        assert instance_id.eql?(node_2_instance.instanceId)
-#      end
-#    end
-#
-#    should "not find a bogus ebs volume allocated" do
-#      assert_nothing_raised do
-#        @cloud.connect!
-#        assert !@cloud.ebs_volume_allocated?("vol-abcd1234")
-#      end
-#    end
-#
-#    should "find an ebs volume allocated" do
-#      assert_nothing_raised do
-#        @cloud.connect!
-#        volume = @ec2.create_volume(:availability_zone => "us-east-1b", :size => "1")
-#        to_be_watched = [volume.volumeId]
-#        while !to_be_watched.empty?
-#          volumes =  @ec2.describe_volumes(:volume_id => to_be_watched[0])
-#          if volumes.volumeSet.item[0].status.eql? "available"
-#            to_be_watched.clear
-#          end
-#          sleep 5 if !to_be_watched.empty?
-#        end
-#        assert @cloud.ebs_volume_allocated?(volume.volumeId)
-#      end
-#    end
-#
-#    should "ensure ebs volumes" do
-#      assert_nothing_raised do
-#        @cloud.nodes.delete("lb-1")
-#        @cloud.elb_nodes.delete("lb-1")
-#        @cloud.nodes.delete("db-1")
-#        @cloud.rds_nodes.delete("db-1")
-#        # case 1: create an EBS volume and attach it to node-1
-#        volume = @ec2.create_volume(:availability_zone => "us-east-1b", :size => "1")
-#        to_be_watched = [volume.volumeId]
-#        while !to_be_watched.empty?
-#          volumes =  @ec2.describe_volumes(:volume_id => to_be_watched[0])
-#          if volumes.volumeSet.item[0].status.eql? "available"
-#            to_be_watched.clear
-#          end
-#          sleep 5 if !to_be_watched.empty?
-#        end
-#        @cloud.nodes["node-1"].ebs_volume_id(volume.volumeId)
-#        @cloud.nodes["node-1"].ebs_device("/dev/sdh")
-#        @cloud.connect!
-#        @cloud.ensure_ec2_security_groups
-#        @cloud.ensure_nodes_running
-#        @cloud.ensure_ebs_volumes
-#        instances = @ec2.describe_instances
-#        node_1_instance = @cloud.find_ec2_node_instance("node-1", instances)
-#        node_2_instance = @cloud.find_ec2_node_instance("node-2", instances)
-#        instance_id = @cloud.ebs_volume_association(volume.volumeId)
-#        assert instance_id.eql?(node_1_instance.instanceId)
-#        # case 2: detach EBS volume from node_1 and attach it to node_2
-#        @cloud.nodes["node-1"].ebs_volume_id(nil)
-#        @cloud.nodes["node-1"].ebs_device(nil)
-#        @cloud.nodes["node-2"].ebs_volume_id(volume.volumeId)
-#        @cloud.nodes["node-2"].ebs_device("/dev/sdh")
-#        @cloud.ensure_ebs_volumes
-#        instance_id = @cloud.ebs_volume_association(volume.volumeId)
-#        assert instance_id.eql?(node_2_instance.instanceId)
-#        # case 3: EBS Volumes already associated, do nothing
-#        @cloud.ensure_ebs_volumes
-#        instance_id = @cloud.ebs_volume_association(volume.volumeId)
-#        assert instance_id.eql?(node_2_instance.instanceId)
-#      end
-#    end
-#
-#    should "start clean" do
-#      assert_nothing_raised do
-#        elastic_ip = @ec2.allocate_address
-#        @cloud.nodes["node-1"].elastic_ip(elastic_ip.publicIp)
-#        volume = @ec2.create_volume(:availability_zone => "us-east-1b", :size => "1")
-#        to_be_watched = [volume.volumeId]
-#        while !to_be_watched.empty?
-#          volumes =  @ec2.describe_volumes(:volume_id => to_be_watched[0])
-#          if volumes.volumeSet.item[0].status.eql? "available"
-#            to_be_watched.clear
-#          end
-#          sleep 5 if !to_be_watched.empty?
-#        end
-#        @cloud.nodes["node-2"].ebs_volume_id(volume.volumeId)
-#        @cloud.nodes["node-2"].ebs_device("/dev/sdh")
-#        @cloud.connect!
-#        @cloud.start
-#        assert_rds_db_parameter_groups
-#        assert_ec2_security_groups_created
-#        assert_role_ec2_security_groups
-#        assert_rds_db_security_groups
-#        assert_rds_nodes_running
-#        assert_ec2_nodes_running
-#        assert_elb_nodes_running
-#        instances = @ec2.describe_instances
-#        node_1_instance = @cloud.find_ec2_node_instance("node-1", instances)
-#        node_2_instance = @cloud.find_ec2_node_instance("node-2", instances)
-#        elastic_ip_instance_id = @cloud.elastic_ip_association(elastic_ip.publicIp)
-#        assert elastic_ip_instance_id.eql?(node_1_instance.instanceId)
-#        ebs_volume_instance_id = @cloud.ebs_volume_association(volume.volumeId)
-#        assert ebs_volume_instance_id.eql?(node_2_instance.instanceId)
-#        # running status code path
-#        @cloud.status
-#      end
-#    end
-#
-#    should "upload Chef assets" do
-#      assert_nothing_raised do
-#        ENV[Maestro::MAESTRO_DIR_ENV_VAR] = File.join(File.dirname(__FILE__), 'fixtures')
-#        @cloud.connect!
-#        @cloud.upload_chef_assets
-#        bucket = AWS::S3::Bucket.find(@cloud.chef_bucket)
-#        assert !bucket.nil?
-#        assert !bucket[Maestro::MAESTRO_COOKBOOKS_ARCHIVE].nil?
-#        assert !bucket[Maestro::MAESTRO_ROLES_ARCHIVE].nil?
-#      end
-#    end
+    should "be able to connect to AWS" do
+      assert_nothing_raised do
+        @cloud.connect!
+      end
+    end
+
+    should "report status" do
+      assert_nothing_raised do
+        @cloud.connect!
+        # not running code path
+        @cloud.status
+      end
+    end
+
+    should "not have any nodes running" do
+      instances = @ec2.describe_instances
+      @cloud.ec2_nodes.each_pair do |node_name, node|
+        assert @cloud.find_ec2_node_instance(node.name, instances).nil?
+      end
+      balancers = @elb.describe_load_balancers
+      @cloud.elb_nodes.each_pair do |node_name, node|
+        assert @cloud.find_elb_node_instance(node.name, balancers).nil?
+      end
+      db_instances = @rds.describe_db_instances
+      @cloud.rds_nodes.each_pair do |node_name, node|
+        assert @cloud.find_rds_node_instance(node.name, balancers).nil?
+      end
+    end
+
+    should "not have any rds db parameter groups" do
+      @cloud.db_parameter_groups.each do |group_name|
+        begin
+          group = @rds.describe_db_parameter_groups(:db_parameter_group_name => group_name)
+          assert false
+        rescue AWS::Error => aws_error
+          assert aws_error.message.eql? "DBParameterGroup #{group_name} not found."
+        end
+      end
+    end
+
+    should "ensure rds db parameter groups" do
+      assert_nothing_raised do
+        @cloud.connect!
+        # doesn't exist code path
+        @cloud.ensure_rds_db_parameter_groups
+        assert_rds_db_parameter_groups
+        # already exists code path
+        @cloud.ensure_rds_db_parameter_groups
+        assert_rds_db_parameter_groups
+      end
+    end
+
+    should "not have any rds db security groups" do
+      @cloud.db_security_groups.each do |group_name|
+        begin
+          group = @rds.describe_db_security_groups(:db_security_group_name => group_name)
+          assert false
+        rescue AWS::Error => aws_error
+          assert aws_error.message.eql? "DBSecurityGroup #{group_name} not found."
+        end
+      end
+    end
+
+    should "ensure rds db security groups" do
+      assert_nothing_raised do
+        @cloud.connect!
+        # doesn't exist code path
+        @cloud.ensure_rds_db_security_groups
+        assert_rds_db_security_groups
+        # already exists code path
+        @cloud.ensure_rds_db_security_groups
+        assert_rds_db_security_groups
+      end
+    end
+
+    should "not have any ec2 security groups" do
+      cloud_security_groups = @cloud.ec2_security_groups
+      cloud_security_groups.each do |group_name|
+        security_group =  @ec2.describe_security_groups(:group_name => [group_name])
+        assert security_group.nil?
+      end
+    end
+
+    should "ensure ec2 security groups" do
+      assert_nothing_raised do
+        @cloud.connect!
+        # doesn't exist code path
+        @cloud.ensure_ec2_security_groups
+        assert_ec2_security_groups_created
+        assert_role_ec2_security_groups
+        # already exists code path
+        @cloud.ensure_ec2_security_groups
+        assert_ec2_security_groups_created
+        assert_role_ec2_security_groups
+      end
+    end
+
+    should "ensure nodes running" do
+      assert_nothing_raised do
+        @cloud.connect!
+        @cloud.ensure_rds_security_groups
+        @cloud.ensure_rds_db_parameter_groups
+        @cloud.ensure_ec2_security_groups
+        @cloud.ensure_rds_db_security_groups
+        # not running code path
+        @cloud.ensure_nodes_running
+        assert_rds_nodes_running
+        assert_ec2_nodes_running
+        assert_elb_nodes_running
+        # already running code path
+        @cloud.ensure_nodes_running
+        assert_rds_nodes_running
+        assert_ec2_nodes_running
+        assert_elb_nodes_running
+      end
+    end
+
+    should "not find a bogus elastic ip allocated" do
+      assert_nothing_raised do
+        @cloud.connect!
+        assert !@cloud.elastic_ip_allocated?("127.0.0.1")
+      end
+    end
+
+    should "find an allocated elastic ip" do
+      assert_nothing_raised do
+        @cloud.connect!
+        elastic_ip = @ec2.allocate_address
+        assert @cloud.elastic_ip_allocated?(elastic_ip.publicIp)
+      end
+    end
+
+    should "ensure elastic ips" do
+      assert_nothing_raised do
+        @cloud.nodes.delete("lb-1")
+        @cloud.elb_nodes.delete("lb-1")
+        @cloud.nodes.delete("db-1")
+        @cloud.rds_nodes.delete("db-1")
+        # case 1: associate an Elastic IP to node_1
+        elastic_ip = @ec2.allocate_address
+        @cloud.nodes["node-1"].elastic_ip(elastic_ip.publicIp)
+        @cloud.connect!
+        @cloud.ensure_ec2_security_groups
+        @cloud.ensure_nodes_running
+        @cloud.ensure_elastic_ips
+        instances = @ec2.describe_instances
+        instance = @cloud.find_ec2_node_instance("node-1", instances)
+        instance_id = @cloud.elastic_ip_association(elastic_ip.publicIp)
+        assert instance_id.eql?(instance.instanceId)
+        # case 2: disassociate Elastic IP from node_1 and associate with node_2
+        @cloud.nodes["node-1"].elastic_ip(nil)
+        @cloud.nodes["node-2"].elastic_ip(elastic_ip.publicIp)
+        @cloud.ensure_elastic_ips
+        instances = @ec2.describe_instances
+        node_1_instance = @cloud.find_ec2_node_instance("node-1", instances)
+        node_2_instance = @cloud.find_ec2_node_instance("node-2", instances)
+        instance_id = @cloud.elastic_ip_association(elastic_ip.publicIp)
+        assert instance_id.eql?(node_2_instance.instanceId)
+        # case 3: Elastic IP already associated, do nothing
+        @cloud.ensure_elastic_ips
+        instance_id = @cloud.elastic_ip_association(elastic_ip.publicIp)
+        assert instance_id.eql?(node_2_instance.instanceId)
+      end
+    end
+
+    should "not find a bogus ebs volume allocated" do
+      assert_nothing_raised do
+        @cloud.connect!
+        assert !@cloud.ebs_volume_allocated?("vol-abcd1234")
+      end
+    end
+
+    should "find an ebs volume allocated" do
+      assert_nothing_raised do
+        @cloud.connect!
+        volume = @ec2.create_volume(:availability_zone => "us-east-1b", :size => "1")
+        to_be_watched = [volume.volumeId]
+        while !to_be_watched.empty?
+          volumes =  @ec2.describe_volumes(:volume_id => to_be_watched[0])
+          if volumes.volumeSet.item[0].status.eql? "available"
+            to_be_watched.clear
+          end
+          sleep 5 if !to_be_watched.empty?
+        end
+        assert @cloud.ebs_volume_allocated?(volume.volumeId)
+      end
+    end
+
+    should "ensure ebs volumes" do
+      assert_nothing_raised do
+        @cloud.nodes.delete("lb-1")
+        @cloud.elb_nodes.delete("lb-1")
+        @cloud.nodes.delete("db-1")
+        @cloud.rds_nodes.delete("db-1")
+        # case 1: create an EBS volume and attach it to node-1
+        volume = @ec2.create_volume(:availability_zone => "us-east-1b", :size => "1")
+        to_be_watched = [volume.volumeId]
+        while !to_be_watched.empty?
+          volumes =  @ec2.describe_volumes(:volume_id => to_be_watched[0])
+          if volumes.volumeSet.item[0].status.eql? "available"
+            to_be_watched.clear
+          end
+          sleep 5 if !to_be_watched.empty?
+        end
+        @cloud.nodes["node-1"].ebs_volume_id(volume.volumeId)
+        @cloud.nodes["node-1"].ebs_device("/dev/sdh")
+        @cloud.connect!
+        @cloud.ensure_ec2_security_groups
+        @cloud.ensure_nodes_running
+        @cloud.ensure_ebs_volumes
+        instances = @ec2.describe_instances
+        node_1_instance = @cloud.find_ec2_node_instance("node-1", instances)
+        node_2_instance = @cloud.find_ec2_node_instance("node-2", instances)
+        instance_id = @cloud.ebs_volume_association(volume.volumeId)
+        assert instance_id.eql?(node_1_instance.instanceId)
+        # case 2: detach EBS volume from node_1 and attach it to node_2
+        @cloud.nodes["node-1"].ebs_volume_id(nil)
+        @cloud.nodes["node-1"].ebs_device(nil)
+        @cloud.nodes["node-2"].ebs_volume_id(volume.volumeId)
+        @cloud.nodes["node-2"].ebs_device("/dev/sdh")
+        @cloud.ensure_ebs_volumes
+        instance_id = @cloud.ebs_volume_association(volume.volumeId)
+        assert instance_id.eql?(node_2_instance.instanceId)
+        # case 3: EBS Volumes already associated, do nothing
+        @cloud.ensure_ebs_volumes
+        instance_id = @cloud.ebs_volume_association(volume.volumeId)
+        assert instance_id.eql?(node_2_instance.instanceId)
+      end
+    end
+
+    should "start clean" do
+      assert_nothing_raised do
+        elastic_ip = @ec2.allocate_address
+        @cloud.nodes["node-1"].elastic_ip(elastic_ip.publicIp)
+        volume = @ec2.create_volume(:availability_zone => "us-east-1b", :size => "1")
+        to_be_watched = [volume.volumeId]
+        while !to_be_watched.empty?
+          volumes =  @ec2.describe_volumes(:volume_id => to_be_watched[0])
+          if volumes.volumeSet.item[0].status.eql? "available"
+            to_be_watched.clear
+          end
+          sleep 5 if !to_be_watched.empty?
+        end
+        @cloud.nodes["node-2"].ebs_volume_id(volume.volumeId)
+        @cloud.nodes["node-2"].ebs_device("/dev/sdh")
+        @cloud.connect!
+        @cloud.start
+        assert_rds_db_parameter_groups
+        assert_ec2_security_groups_created
+        assert_role_ec2_security_groups
+        assert_rds_db_security_groups
+        assert_rds_nodes_running
+        assert_ec2_nodes_running
+        assert_elb_nodes_running
+        instances = @ec2.describe_instances
+        node_1_instance = @cloud.find_ec2_node_instance("node-1", instances)
+        node_2_instance = @cloud.find_ec2_node_instance("node-2", instances)
+        elastic_ip_instance_id = @cloud.elastic_ip_association(elastic_ip.publicIp)
+        assert elastic_ip_instance_id.eql?(node_1_instance.instanceId)
+        ebs_volume_instance_id = @cloud.ebs_volume_association(volume.volumeId)
+        assert ebs_volume_instance_id.eql?(node_2_instance.instanceId)
+        # running status code path
+        @cloud.status
+      end
+    end
+
+    should "upload Chef assets" do
+      assert_nothing_raised do
+        ENV[Maestro::MAESTRO_DIR_ENV_VAR] = File.join(File.dirname(__FILE__), 'fixtures')
+        @cloud.connect!
+        @cloud.upload_chef_assets
+        bucket = AWS::S3::Bucket.find(@cloud.chef_bucket)
+        assert !bucket.nil?
+        assert !bucket[Maestro::MAESTRO_CHEF_ARCHIVE].nil?
+      end
+    end
 
     should "configure nodes" do
       assert_nothing_raised do
@@ -532,27 +548,27 @@ class TestAwsCloud < Test::Unit::TestCase
       end
     end
 
-#    should "ensure nodes terminated" do
-#      assert_nothing_raised do
-#        @cloud.connect!
-#        @cloud.start
-#        @cloud.ensure_nodes_terminated
-#        assert_elb_nodes_not_running
-#        assert_ec2_nodes_not_running
-#        assert_rds_nodes_not_running
-#      end
-#    end
-#
-#    should "shutdown clean" do
-#      assert_nothing_raised do
-#        @cloud.connect!
-#        @cloud.start
-#        @cloud.shutdown
-#        assert_elb_nodes_not_running
-#        assert_ec2_nodes_not_running
-#        assert_rds_nodes_not_running
-#      end
-#    end
+    should "ensure nodes terminated" do
+      assert_nothing_raised do
+        @cloud.connect!
+        @cloud.start
+        @cloud.ensure_nodes_terminated
+        assert_elb_nodes_not_running
+        assert_ec2_nodes_not_running
+        assert_rds_nodes_not_running
+      end
+    end
+
+    should "shutdown clean" do
+      assert_nothing_raised do
+        @cloud.connect!
+        @cloud.start
+        @cloud.shutdown
+        assert_elb_nodes_not_running
+        assert_ec2_nodes_not_running
+        assert_rds_nodes_not_running
+      end
+    end
   end
 
 
