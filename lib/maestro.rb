@@ -4,6 +4,9 @@ require "ftools"
 require "maestro/cloud"
 require "maestro/cloud/aws"
 require "maestro/operating_system"
+require "log4r"
+require "log4r/configurator"
+require "maestro/log4r/console_formatter"
 
 
 def aws_cloud(name, &block)
@@ -24,6 +27,13 @@ module Maestro
 
   # Name of the Maestro Chef assets archive
   MAESTRO_CHEF_ARCHIVE = 'maestro_chef_assets.tar.gz'
+
+  # add a PROGRESS level
+  Log4r::Configurator.custom_levels(:DEBUG, :INFO, :PROGRESS, :WARN, :ERROR, :FATAL)
+  @logger = Log4r::Logger.new("maestro")
+  outputter = Log4r::Outputter.stdout
+  outputter.formatter = ConsoleFormatter.new
+  @logger.add(outputter)
 
 
   # Creates the Maestro config directory structure. If the directories already exist, no action is taken.
@@ -98,12 +108,23 @@ module Maestro
     end
   end
 
-  # Returns the log directory
+  # Returns the top level log directory
   def self.log_directory
     if defined? RAILS_ROOT
-      rails_config_dir
+      rails_log_dir
     elsif ENV.has_key? MAESTRO_DIR_ENV_VAR
-      standalone_config_dir
+      standalone_log_dir
+    else
+      raise "Maestro not configured correctly. Either RAILS_ROOT or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
+    end
+  end
+
+  # Returns the maestro log directory
+  def self.maestro_log_directory
+    if defined? RAILS_ROOT
+      rails_log_dir + "/maestro"
+    elsif ENV.has_key? MAESTRO_DIR_ENV_VAR
+      standalone_log_dir + "/maestro"
     else
       raise "Maestro not configured correctly. Either RAILS_ROOT or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
     end
@@ -117,9 +138,9 @@ module Maestro
 
     dir = nil
     if defined? RAILS_ROOT
-      dir = rails_config_dir
+      dir = rails_maestro_config_dir
     elsif ENV.has_key? MAESTRO_DIR_ENV_VAR
-      dir = standalone_config_dir
+      dir = standalone_maestro_config_dir
     else
       raise "Maestro not configured correctly. Either RAILS_ROOT or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
     end
@@ -159,29 +180,21 @@ module Maestro
     raise "Cannot create Maestro config directory structure: #{dir} is not writable." if !File.writable?(dir)
     base_dir = dir
     base_dir.chop! if base_dir =~ /\/$/
-    if File.exist?("#{base_dir}/maestro")
-      puts "#{base_dir}/maestro already exists"
-    else
+    if !File.exist?("#{base_dir}/maestro")
       Dir.mkdir("#{base_dir}/maestro")
-      puts "Created #{base_dir}/maestro"
+      @logger.progress "Created #{base_dir}/maestro"
     end
-    if File.exist?("#{base_dir}/maestro/clouds")
-      puts "#{base_dir}/maestro/clouds already exists"
-    else
+    if !File.exist?("#{base_dir}/maestro/clouds")
       Dir.mkdir("#{base_dir}/maestro/clouds")
-      puts "Created #{base_dir}/maestro/clouds"
+      @logger.info "Created #{base_dir}/maestro/clouds"
     end
-    if File.exist?("#{base_dir}/maestro/cookbooks")
-      puts "#{base_dir}/maestro/cookbooks already exists"
-    else
+    if !File.exist?("#{base_dir}/maestro/cookbooks")
       Dir.mkdir("#{base_dir}/maestro/cookbooks")
-      puts "Created #{base_dir}/maestro/cookbooks"
+      @logger.info "Created #{base_dir}/maestro/cookbooks"
     end
-    if File.exist?("#{base_dir}/maestro/roles")
-      puts "#{base_dir}/maestro/roles already exists"
-    else
+    if !File.exist?("#{base_dir}/maestro/roles")
       Dir.mkdir("#{base_dir}/maestro/roles")
-      puts "Created #{base_dir}/maestro/roles"
+      @logger.info "Created #{base_dir}/maestro/roles"
     end
   end
 
@@ -194,17 +207,13 @@ module Maestro
     raise "Cannot create Maestro log directory: #{dir} is not writable." if !File.writable?(dir)
     base_dir = dir
     base_dir.chop! if base_dir =~ /\/$/
-    if File.exist?("#{base_dir}/maestro")
-      puts "#{base_dir}/maestro already exists"
-    else
+    if !File.exist?("#{base_dir}/maestro")
       Dir.mkdir("#{base_dir}/maestro")
-      puts "Created #{base_dir}/maestro"
+      @logger.info "Created #{base_dir}/maestro"
     end
-    if File.exist?("#{base_dir}/maestro/clouds")
-      puts "#{base_dir}/maestro/clouds already exists"
-    else
+    if !File.exist?("#{base_dir}/maestro/clouds")
       Dir.mkdir("#{base_dir}/maestro/clouds")
-      puts "Created #{base_dir}/maestro/clouds"
+      @logger.info "Created #{base_dir}/maestro/clouds"
     end
   end
 

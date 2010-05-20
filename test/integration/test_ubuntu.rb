@@ -94,9 +94,9 @@ class TestUbuntu < Test::Unit::TestCase
           @cloud.connect!
           @cloud.start
           @cloud.get_configurable_node_hostnames
-          assert !@cloud.chef_solo_installed?
+          assert !@cloud.chef_solo_installed?[0]
           @cloud.install_chef_solo
-          assert @cloud.chef_solo_installed?
+          assert @cloud.chef_solo_installed?[0]
         end
       end
     end
@@ -109,9 +109,9 @@ class TestUbuntu < Test::Unit::TestCase
           @cloud.connect!
           @cloud.start
           @cloud.get_configurable_node_hostnames
-          assert !@cloud.chef_solo_installed?
+          assert !@cloud.chef_solo_installed?[0]
           @cloud.install_chef_solo
-          assert @cloud.chef_solo_installed?
+          assert @cloud.chef_solo_installed?[0]
         end
       end
     end
@@ -124,9 +124,9 @@ class TestUbuntu < Test::Unit::TestCase
           @cloud.connect!
           @cloud.start
           @cloud.get_configurable_node_hostnames
-          assert !@cloud.chef_solo_installed?
+          assert !@cloud.chef_solo_installed?[0]
           @cloud.install_chef_solo
-          assert @cloud.chef_solo_installed?
+          assert @cloud.chef_solo_installed?[0]
         end
       end
     end
@@ -139,9 +139,9 @@ class TestUbuntu < Test::Unit::TestCase
           @cloud.connect!
           @cloud.start
           @cloud.get_configurable_node_hostnames
-          assert !@cloud.chef_solo_installed?
+          assert !@cloud.chef_solo_installed?[0]
           @cloud.install_chef_solo
-          assert @cloud.chef_solo_installed?
+          assert @cloud.chef_solo_installed?[0]
         end
       end
     end

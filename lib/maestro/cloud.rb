@@ -1,7 +1,11 @@
+require "ftools"
 require "maestro/role"
 require "maestro/node"
 require 'maestro/validator'
 require "net/ssh/multi"
+require "log4r"
+require "maestro/log4r/console_formatter"
+require "maestro/log4r/file_formatter"
 
 
 module Maestro
@@ -16,6 +20,8 @@ module Maestro
       attr_accessor :config_file
       # the Hash of Configurable Nodes in this Cloud
       attr_reader :configurable_nodes
+      # String containing the full path to this Cloud's log directory
+      attr_reader :log_directory
       dsl_property :keypair_name, :keypair_file
 
       # Creates a new Cloud object.
@@ -31,6 +37,11 @@ module Maestro
         @nodes = Hash.new
         @configurable_nodes = Hash.new
         @valid = true
+        @logger = Log4r::Logger.new(Regexp::quote(@name.to_s))
+        outputter = Log4r::StdoutOutputter.new("#{@name.to_s}-stdout")
+        outputter.formatter = ConsoleFormatter.new
+        @logger.add(outputter)
+        init_logs
         instance_eval(&block) if block_given?
       end
 
@@ -85,52 +96,77 @@ module Maestro
 
       # Reports the current status of this Cloud
       def status
-        puts "#{@name} Cloud status:"
+        @logger.info "#{@name} Cloud status:"
         node_statuses
       end
 
       # Starts this Cloud. Takes no action if the Cloud is already running as currently configured
       def start
-        puts "Starting #{@name} Cloud. This may take a few minutes..."
+        @logger.info "Starting #{@name} Cloud. This may take a few minutes..."
       end
 
       # Configures the Nodes in this Cloud
       def configure
-        puts "Configuring #{@name} Cloud"
-        session = open_ssh_session
-        if !chef_solo_installed?(session)
-          puts "Installing chef-solo. This may take a few minutes..."
-          install_chef_solo(session)
-          configure_chef_solo(session)
-        else
-          puts "chef-solo already installed"
+        @logger.info "Configuring #{@name} Cloud"
+        if !@configurable_nodes.empty?
+          session = open_ssh_session
+          result = chef_solo_installed?(session)
+          if !result[0]
+            names = result[1].collect {|n| n.name}
+            @logger.progress "Installing chef-solo on Nodes #{names.inspect}. This may take a few minutes..."
+            session.close
+            session = open_ssh_session(result[1])
+            install_chef_solo(session)
+            configure_chef_solo(session)
+            session.close
+            @logger.info ""
+          else
+            @logger.info "chef-solo already installed on Nodes #{@configurable_nodes.keys.inspect}"
+          end
+          @logger.info "Running chef-solo on Nodes #{@configurable_nodes.keys.inspect}..."
+          session = open_ssh_session
+          run_chef_solo(session)
+          session.close
         end
-        puts "Running chef-solo..."
-        run_chef_solo(session)
-        session.close
       end
 
-      # Returns true if chef-solo is installed and the correct version, false if not
+      # Checks if chef-solo is installed on each of the Configurable Nodes in this Cloud.
+      # This method returns an Array with two elements:
+      # * element[0] boolean indicating whether chef-solo is installed on all Configurable Nodes 
+      # * element[1] Array of Nodes which need chef-solo installed
       def chef_solo_installed?(session=nil)
         close_session = false
         if session.nil?
           session = open_ssh_session
           close_session = true
         end
-        puts "Checking for installation of chef-solo..."
-        valid = false
+        @logger.info "Checking for installation of chef-solo..."
+        valid = true
+        needs_chef = Array.new
         session.open_channel do |channel|
-          channel.request_pty {|ch, success| abort "could not obtain pty" if !success}
-          channel.exec("chef-solo --version") do |ch, success|
-            ch.on_data {|ch, data| valid = true if data.include?("Chef: 0.8")}
+          # Find the node for this channel's host
+          the_node = nil
+          @configurable_nodes.each_pair {|name, node| the_node = node if channel[:host].eql? node.hostname}
+          if the_node.nil?
+            @logger.error "Could not find node matching hostname #{channel[:host]}. This should not happen."
+          else
+            channel.request_pty {|ch, success| abort "could not obtain pty" if !success}
+            channel.exec("chef-solo --version") do |ch, success|
+              ch.on_data do |ch, data|
+                if !data.include?("Chef: 0.8")
+                  valid = false
+                  needs_chef << the_node
+                end
+              end
+            end
           end
         end
-        session.loop
+        session.loop(60)
         session.close if close_session
-        return valid
+        return [valid, needs_chef]
       end
 
-      # installs chef-solo on each Configurable Node in the cloud
+      # installs chef-solo on the Configurable Nodes the given session is set up with
       def install_chef_solo(session=nil)
         close_session = false
         if session.nil?
@@ -144,19 +180,31 @@ module Maestro
             ch.on_data {|ch, data| etc_issue = data}
           end
         end
-        session.loop
+        session.loop(60)
 
+        # shut off the stdout outputter and only log to the nodes' log files
+        @configurable_nodes.each_pair {|name, node| node.disable_stdout}
         os = Maestro::OperatingSystem.create_from_etc_issue(etc_issue)
         os.chef_install_script.each do |cmd|
           session.open_channel do |channel|
-            channel.request_pty {|ch, success| abort "could not obtain pty" if !success}
-            channel.exec(cmd) do |ch, success|
-              ch.on_data {|ch, data| puts data}
-              ch.on_extended_data {|ch, data| puts "ERROR: #{data}"}
+            # Find the node for this channel's host
+            the_node = nil
+            @configurable_nodes.each_pair {|name, node| the_node = node if channel[:host].eql? node.hostname}
+            if the_node.nil?
+              @logger.error "Could not find node matching hostname #{channel[:host]}. This should not happen."
+            else
+              channel.request_pty {|ch, success| abort "could not obtain pty" if !success}
+              channel.exec(cmd) do |ch, success|
+                @logger.progress "."
+                ch.on_data {|ch, data| the_node.logger.info data}
+                ch.on_extended_data {|ch, data| the_node.logger.error }
+              end
             end
           end
-          session.loop
+          session.loop(60)
         end
+        # turn the stdout outputter back on
+        @configurable_nodes.each_pair {|name, node| node.enable_stdout}
         session.close if close_session
       end
 
@@ -181,7 +229,7 @@ module Maestro
             channel.request_pty {|ch, success| abort "could not obtain pty" if !success}
             channel.exec(str)
           end
-          session.loop
+          session.loop(60)
         end
         session.close if close_session
       end
@@ -195,6 +243,8 @@ module Maestro
         end
         commands = 
            ["sudo chef-solo -c /tmp/chef-solo.rb -r '#{chef_assets_url()}'"]
+        # shut off the stdout outputter and only log to the nodes' log files
+        @configurable_nodes.each_pair {|name, node| node.disable_stdout}
         commands.each do |cmd|
           session.open_channel do |channel|
             channel.request_pty {|ch, success| abort "could not obtain pty" if !success}
@@ -202,30 +252,69 @@ module Maestro
             the_node = nil
             @configurable_nodes.each_pair {|name, node| the_node = node if channel[:host].eql? node.hostname}
             if the_node.nil?
-              puts "ERROR! Could not find node matching hostname #{channel[:host]}. This should not happen."
+              @logger.error "Could not find node matching hostname #{channel[:host]}. This should not happen."
             else
               node_cmd = cmd + " -j '#{node_json_url(the_node)}'"
               channel.exec(node_cmd) do |ch, success|
-                ch.on_data {|ch2, data2| puts "#{data2}"}
-                ch.on_extended_data {|ch2, data2| puts "#{data2}"}
+                ch.on_data {|ch2, data2| the_node.logger.info data2}
+                ch.on_extended_data {|ch2, data2| the_node.logger.error data2}
               end
             end
           end
-          session.loop
+          session.loop(60)
         end
+        # turn the stdout outputter back on
+        @configurable_nodes.each_pair {|name, node| node.enable_stdout}
         session.close if close_session
       end
 
       # Shuts down this Cloud. Takes no action if the Cloud is not running
       def shutdown
-        puts "Shutting down #{@name} Cloud"
+        @logger.info "Shutting down #{@name} Cloud"
       end
 
 
       protected
 
-      # opens a multi ssh session to all of the nodes in the Cloud
-      def open_ssh_session
+      # creates log directory and files for this cloud. If the log directory or files exist, no action is taken.
+      def init_logs
+        begin
+          clouds_dir = Maestro.maestro_log_directory + "/clouds"
+          if !File.exists?(clouds_dir)
+            Dir.mkdir(clouds_dir)
+            @logger.info "Created #{clouds_dir}"
+          end
+          cloud_dir = clouds_dir + "/#{@name}"
+          if !File.exists?(cloud_dir)
+            Dir.mkdir(cloud_dir)
+            @logger.info "Created #{cloud_dir}"
+          end
+          @log_directory = cloud_dir
+          cloud_log_file = cloud_dir + "/#{@name}.log"
+          if !File.exists?(cloud_log_file)
+            File.new(cloud_log_file, "a+")
+            @logger.info "Created #{cloud_log_file}"
+          end
+          outputter = Log4r::FileOutputter.new("#{@name}-file", :formatter => FileFormatter.new, :filename => cloud_log_file, :truncate => false)
+          @logger.add(outputter)
+        rescue RuntimeError => rerr
+          if !rerr.message.eql?("Maestro not configured correctly. Either RAILS_ROOT or ENV['MAESTRO_DIR'] must be defined")
+            @logger.error "Unexpected Error"
+            @logger.error rerr
+          end
+        rescue SystemCallError => syserr
+          @logger.error "Error creating cloud directory"
+          @logger.error syserr
+        rescue StandardError => serr
+          @logger.error "Unexpected Error"
+          @logger.error serr
+        end
+      end
+
+      # opens a multi ssh session. If the cnodes argument is nil, then a session
+      # is opened up to each Configurable Node in this Cloud. Otherwise, a session
+      # is opened to each Configurable Node in the cnodes array.
+      def open_ssh_session(cnodes=[])
         handler = Proc.new do |server|
           server[:connection_attempts] ||= 0
           if server[:connection_attempts] < 50
@@ -237,8 +326,12 @@ module Maestro
           end
         end
 
-        session = Net::SSH::Multi.start(:on_error => handler)
-        @configurable_nodes.each_pair {|node_name, node| session.use node.hostname, :user => node.ssh_user, :keys => [keypair_file]}
+        session = Net::SSH::Multi.start(:concurrent_connections => 10, :on_error => handler)
+        if cnodes.empty?
+          @configurable_nodes.each_pair {|node_name, node| session.use node.hostname, :user => node.ssh_user, :keys => [keypair_file]}
+        else
+          cnodes.each {|node| session.use node.hostname, :user => node.ssh_user, :keys => [keypair_file]}
+        end
         return session
       end
 

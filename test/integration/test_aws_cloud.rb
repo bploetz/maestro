@@ -13,6 +13,8 @@ class TestAwsCloud < Test::Unit::TestCase
     # Setup
     #######################
     setup do
+      ENV[Maestro::MAESTRO_DIR_ENV_VAR] = File.join(File.dirname(File.expand_path(__FILE__)), 'fixtures')
+      Maestro.create_log_dirs
       credentials = @credentials
       @cloud = aws_cloud :maestro_aws_itest do
         keypair_name credentials[:keypair_name]
@@ -246,7 +248,8 @@ class TestAwsCloud < Test::Unit::TestCase
           puts aws_error
         end
       end
-      
+
+      FileUtils.rm_rf([Maestro.maestro_log_directory], :secure => true) if File.exists?(Maestro.maestro_log_directory)
       ENV.delete Maestro::MAESTRO_DIR_ENV_VAR
     end
 
@@ -523,7 +526,6 @@ class TestAwsCloud < Test::Unit::TestCase
 
     should "upload Chef assets" do
       assert_nothing_raised do
-        ENV[Maestro::MAESTRO_DIR_ENV_VAR] = File.join(File.dirname(__FILE__), 'fixtures')
         @cloud.connect!
         @cloud.upload_chef_assets
         bucket = AWS::S3::Bucket.find(@cloud.chef_bucket)
@@ -534,7 +536,6 @@ class TestAwsCloud < Test::Unit::TestCase
 
     should "configure nodes" do
       assert_nothing_raised do
-        ENV[Maestro::MAESTRO_DIR_ENV_VAR] = File.join(File.dirname(__FILE__), 'fixtures')
         @cloud.nodes.delete("lb-1")
         @cloud.elb_nodes.delete("lb-1")
         @cloud.nodes.delete("db-1")

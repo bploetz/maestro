@@ -1,5 +1,4 @@
 require 'helper'
-require "ftools"
 
 # Unit tests for Maestro class methods
 class TestMaestro < Test::Unit::TestCase

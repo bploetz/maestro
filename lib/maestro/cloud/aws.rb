@@ -154,24 +154,24 @@ module Maestro
       def reboot_rds_node(node_name)
         to_be_watched = Array.new
         node = @rds_nodes[node_name]
-        puts "Rebooting Node #{node_name}..."
+        @logger.info "Rebooting Node #{node_name}..."
         @rds.reboot_db_instance(:db_instance_identifier => node.db_instance_identifier)
         to_be_watched << node_name
         STDOUT.sync = true
-        print "Waiting for Node #{node_name} to reboot. This may take several minutes..."
+        @logger.progress "Waiting for Node #{node_name} to reboot. This may take several minutes..."
         while !to_be_watched.empty?
           instances =  @rds.describe_db_instances
           instance = find_rds_node_instance(node.db_instance_identifier, instances)
           if !instance.nil? && instance.DBInstanceStatus.eql?("available")
-            puts ""
-            puts "Node #{node_name} rebooted"
+            @logger.info ""
+            @logger.info "Node #{node_name} rebooted"
             to_be_watched.delete(node_name)
           elsif !instance.nil? && instance.DBInstanceStatus.eql?("failed")
-            puts ""
-            puts "Node #{node_name} failed to reboot!"
+            @logger.info ""
+            @logger.info "Node #{node_name} failed to reboot!"
             to_be_watched.delete(node_name)
           else
-            print "."
+            @logger.progress "."
           end
           sleep 5 if !to_be_watched.empty?
         end
@@ -190,9 +190,9 @@ module Maestro
         @rds_nodes.each_pair do |node_name, node|
           node_instance = find_rds_node_instance(node_name, all_instances)
           if node_instance.nil?
-            puts "  #{node_name}: not running"
+            @logger.info "  #{node_name}: not running"
           else
-            puts "  #{node_name}: #{node_instance.DBInstanceStatus} (host: #{node_instance.Endpoint.Address}, port: #{node_instance.Endpoint.Port})"
+            @logger.info "  #{node_name}: #{node_instance.DBInstanceStatus} (host: #{node_instance.Endpoint.Address}, port: #{node_instance.Endpoint.Port})"
           end
         end
       end
@@ -203,9 +203,9 @@ module Maestro
         @ec2_nodes.each_pair do |node_name, node|
           node_instance = find_ec2_node_instance(node_name, all_instances)
           if node_instance.nil?
-            puts "  #{node_name}: not running"
+            @logger.info "  #{node_name}: not running"
           else
-            puts "  #{node_name}: #{node_instance.instanceState.name} (instance #{node_instance.instanceId}, host: #{node_instance.dnsName})"
+            @logger.info "  #{node_name}: #{node_instance.instanceState.name} (instance #{node_instance.instanceId}, host: #{node_instance.dnsName})"
           end
         end
       end
@@ -216,17 +216,17 @@ module Maestro
         @elb_nodes.each_pair do |node_name, node|
           node_balancer = find_elb_node_instance(node_name, all_balancers)
           if node_balancer.nil?
-            puts "  #{node_name}: not running"
+            @logger.info "  #{node_name}: not running"
           else
-            puts "  #{node_name}: running (host: #{node_balancer.DNSName})"
-            puts "  #{node_name} registered instances health:"
+            @logger.info "  #{node_name}: running (host: #{node_balancer.DNSName})"
+            @logger.info "  #{node_name} registered instances health:"
             health = @elb.describe_instance_health(:load_balancer_name => node.load_balancer_name)
             all_instances = @ec2.describe_instances
             node.ec2_nodes.each do |ec2_node_name|
               ec2_instance = find_ec2_node_instance(ec2_node_name, all_instances)
               ec2_node = @ec2_nodes[ec2_node_name]
               health_member = health.DescribeInstanceHealthResult.InstanceStates.member.select {|member| member if member.InstanceId.eql?(ec2_instance.instanceId)}
-              puts "  #{node_name.gsub(/./, ' ')} #{ec2_node_name}: #{health_member[0].State} (#{health_member[0].Description})"
+              @logger.info "  #{node_name.gsub(/./, ' ')} #{ec2_node_name}: #{health_member[0].State} (#{health_member[0].Description})"
             end
           end
         end
@@ -315,14 +315,14 @@ module Maestro
           if !node.db_parameter_group_name.nil?
             begin
               group = @rds.describe_db_parameter_groups(:db_parameter_group_name => node.db_parameter_group_name)
-              puts "Node #{node.name}'s db parameter group already exists (#{node.db_parameter_group_name})"
+              @logger.info "Node #{node.name}'s db parameter group already exists (#{node.db_parameter_group_name})"
             rescue AWS::Error => aws_error
               if aws_error.message.eql? "DBParameterGroup #{node.db_parameter_group_name} not found."
                 @rds.create_db_parameter_group(:db_parameter_group_name => node.db_parameter_group_name, :engine => node.engine, :description => "The #{node.cloud.name} Cloud's #{node.name} Node's DB Parameter group")
                 group = @rds.describe_db_parameter_groups(:db_parameter_group_name => node.db_parameter_group_name)
-                puts "Created db parameter group for Node #{node.name} (#{node.db_parameter_group_name})"
+                @logger.info "Created db parameter group for Node #{node.name} (#{node.db_parameter_group_name})"
               else
-                puts "ERROR! Unexpected error retrieving db parameter groups: #{aws_error.message}"
+                @logger.error "ERROR! Unexpected error retrieving db parameter groups: #{aws_error.message}"
               end
             end
             if !group.nil?
@@ -335,10 +335,10 @@ module Maestro
                 begin
                   @rds.modify_db_parameter_group(:db_parameter_group_name => node.db_parameter_group_name, :parameters => slice)
                 rescue AWS::InvalidParameterValue => invalid_param
-                  puts "ERROR! #{invalid_param.message}"
+                  @logger.error "ERROR! #{invalid_param.message}"
                 end
               end
-              puts "Updated Node #{node.name}'s db parameter group (#{node.db_parameter_group_name}). Changes will be reflected when the Node is next rebooted."
+              @logger.info "Updated Node #{node.name}'s db parameter group (#{node.db_parameter_group_name}). Changes will be reflected when the Node is next rebooted."
             end
           end
         end
@@ -349,22 +349,22 @@ module Maestro
         @rds_nodes.each_pair do |node_name, node|
           begin
             group = @rds.describe_db_security_groups(:db_security_group_name => node.db_security_group_name)
-            puts "Node #{node.name}'s db security group already exists (#{node.db_security_group_name})"
+            @logger.info "Node #{node.name}'s db security group already exists (#{node.db_security_group_name})"
           rescue AWS::Error => aws_error
             if aws_error.message.eql? "DBSecurityGroup #{node.db_security_group_name} not found."
               @rds.create_db_security_group(:db_security_group_name => node.db_security_group_name, :db_security_group_description => "The #{node.cloud.name} Cloud's #{node.name} Node's DB Security group")
               group = @rds.describe_db_security_groups(:db_security_group_name => node.db_security_group_name)
-              puts "Created db security group for Node #{node.name} (#{node.db_security_group_name})"
+              @logger.info "Created db security group for Node #{node.name} (#{node.db_security_group_name})"
             else
-              puts "ERROR! Unexpected error retrieving db security groups: #{aws_error.message}"
+              @logger.error "ERROR! Unexpected error retrieving db security groups: #{aws_error.message}"
             end
           end
           if !group.nil? && !@ec2_nodes.empty?
             if group.DescribeDBSecurityGroupsResult.DBSecurityGroups.DBSecurityGroup.EC2SecurityGroups.nil?
               @rds.authorize_db_security_group(:db_security_group_name => node.db_security_group_name, :ec2_security_group_name => @default_ec2_security_group, :ec2_security_group_owner_id => aws_account_id)
-              puts "Authorized network ingress from Nodes #{@ec2_nodes.keys.inspect} to Node #{node.name}"
+              @logger.info "Authorized network ingress from Nodes #{@ec2_nodes.keys.inspect} to Node #{node.name}"
             else
-              puts "Network ingress from Nodes #{@ec2_nodes.keys.inspect} to Node #{node.name} already authorized"
+              @logger.info "Network ingress from Nodes #{@ec2_nodes.keys.inspect} to Node #{node.name} already authorized"
             end
           end
         end
@@ -378,31 +378,31 @@ module Maestro
         @rds_nodes.each_pair do |node_name, node|
           node_instance = find_rds_node_instance(node.db_instance_identifier, all_instances)
           if node_instance.nil?
-            puts "Node #{node_name} not running. Starting..."
+            @logger.info "Node #{node_name} not running. Starting..."
             to_be_started << node_name
           elsif node_instance.DBInstanceStatus.eql?("deleting")
-            puts "Node #{node_name} deleting. Re-creating..."
+            @logger.info "Node #{node_name} deleting. Re-creating..."
             to_be_started << node_name
           elsif (node_instance.DBInstanceStatus.eql?("creating"))
-            puts "Node #{node_name} starting up..."
+            @logger.info "Node #{node_name} starting up..."
             to_be_watched << node_name
           elsif (node_instance.DBInstanceStatus.eql?("rebooting"))
-            puts "Node #{node_name} rebooting..."
+            @logger.info "Node #{node_name} rebooting..."
             to_be_watched << node_name
           elsif (node_instance.DBInstanceStatus.eql?("modifying"))
-            puts "Node #{node_name} being modified..."
+            @logger.info "Node #{node_name} being modified..."
             to_be_watched << node_name
           elsif (node_instance.DBInstanceStatus.eql?("resetting-mastercredentials"))
-            puts "Node #{node_name} resetting master credentials..."
+            @logger.info "Node #{node_name} resetting master credentials..."
             to_be_watched << node_name
           elsif (node_instance.DBInstanceStatus.eql?("available"))
-            puts "Node #{node_name} already running (host: #{node_instance.Endpoint.Address}, port: #{node_instance.Endpoint.Port})"
+            @logger.info "Node #{node_name} already running (host: #{node_instance.Endpoint.Address}, port: #{node_instance.Endpoint.Port})"
           elsif (node_instance.DBInstanceStatus.eql?("backing-up"))
-            puts "Node #{node_name} already running (host: #{node_instance.Endpoint.Address}, port: #{node_instance.Endpoint.Port})"
+            @logger.info "Node #{node_name} already running (host: #{node_instance.Endpoint.Address}, port: #{node_instance.Endpoint.Port})"
           elsif (node_instance.DBInstanceStatus.eql?("failed"))
-            puts "Node #{node_name} in a failed state (host: #{node_instance.Endpoint.Address}, port: #{node_instance.Endpoint.Port})"
+            @logger.info "Node #{node_name} in a failed state (host: #{node_instance.Endpoint.Address}, port: #{node_instance.Endpoint.Port})"
           elsif (node_instance.DBInstanceStatus.eql?("storage-full"))
-            puts "Node #{node_name} in a failed state due to storage full (host: #{node_instance.Endpoint.Address}, port: #{node_instance.Endpoint.Port})"
+            @logger.info "Node #{node_name} in a failed state due to storage full (host: #{node_instance.Endpoint.Address}, port: #{node_instance.Endpoint.Port})"
           end
         end
         to_be_started.each do |node_name|
@@ -411,24 +411,24 @@ module Maestro
           to_be_watched << node_name
         end
         STDOUT.sync = true
-        print "Waiting for Nodes #{to_be_watched.inspect} to start. This may take several minutes..." if !to_be_watched.empty?
+        @logger.progress "Waiting for Nodes #{to_be_watched.inspect} to start. This may take several minutes..." if !to_be_watched.empty?
         while !to_be_watched.empty?
           instances =  @rds.describe_db_instances
           to_be_watched.each do |node_name|
             node = @nodes[node_name]
             instance = find_rds_node_instance(node.db_instance_identifier, instances)
             if !instance.nil? && instance.DBInstanceStatus.eql?("available")
-              puts ""
-              puts "Node #{node_name} started (host: #{instance.Endpoint.Address}, port: #{instance.Endpoint.Port})"
+              @logger.info ""
+              @logger.info "Node #{node_name} started (host: #{instance.Endpoint.Address}, port: #{instance.Endpoint.Port})"
               to_be_watched.delete(node_name)
-              print "Waiting for Nodes #{to_be_watched.inspect} to start. This may take several minutes..." if !to_be_watched.empty?
+              @logger.progress "Waiting for Nodes #{to_be_watched.inspect} to start. This may take several minutes..." if !to_be_watched.empty?
             elsif !instance.nil? && instance.DBInstanceStatus.eql?("failed")
-              puts ""
-              puts "Node #{node_name} failed to start!"
+              @logger.info ""
+              @logger.info "Node #{node_name} failed to start!"
               to_be_watched.delete(node_name)
-              print "Waiting for Nodes #{to_be_watched.inspect} to start. This may take several minutes..." if !to_be_watched.empty?
+              @logger.progress "Waiting for Nodes #{to_be_watched.inspect} to start. This may take several minutes..." if !to_be_watched.empty?
             else
-              print "."
+              @logger.progress "."
             end
           end
           sleep 5 if !to_be_watched.empty?
@@ -443,15 +443,15 @@ module Maestro
         @ec2_nodes.keys.each do |node_name|
           node_instance = find_ec2_node_instance(node_name, all_instances)
           if node_instance.nil?
-            puts "Node #{node_name} not running. Starting..."
+            @logger.info "Node #{node_name} not running. Starting..."
             to_be_started << node_name
           elsif node_instance.instanceState.name.eql?("shutting-down")
-            puts "Node #{node_name} shutting down. Re-starting..."
+            @logger.info "Node #{node_name} shutting down. Re-starting..."
           elsif node_instance.instanceState.name.eql?("pending")
-            puts "Node #{node_name} starting up..."
+            @logger.info "Node #{node_name} starting up..."
             to_be_watched << node_name
           else
-            puts "Node #{node_name} already running (instance #{node_instance.instanceId}, host: #{node_instance.dnsName})"
+            @logger.info "Node #{node_name} already running (instance #{node_instance.instanceId}, host: #{node_instance.dnsName})"
           end
         end
         to_be_started.each do |node_name|
@@ -460,18 +460,18 @@ module Maestro
           to_be_watched << node_name
         end
         STDOUT.sync = true
-        print "Waiting for Nodes #{to_be_watched.inspect} to start..." if !to_be_watched.empty?
+        @logger.progress "Waiting for Nodes #{to_be_watched.inspect} to start..." if !to_be_watched.empty?
         while !to_be_watched.empty?
           instances =  @ec2.describe_instances()
           to_be_watched.each do |node_name|
             instance = find_ec2_node_instance(node_name, instances)
             if !instance.nil? && instance.instanceState.name.eql?("running")
-              puts ""
-              puts "Node #{node_name} started (instance #{instance.instanceId}, host: #{instance.dnsName})"
+              @logger.info ""
+              @logger.info "Node #{node_name} started (instance #{instance.instanceId}, host: #{instance.dnsName})"
               to_be_watched.delete(node_name)
-              print "Waiting for Nodes #{to_be_watched.inspect} to start..." if !to_be_watched.empty?
+              @logger.progress "Waiting for Nodes #{to_be_watched.inspect} to start..." if !to_be_watched.empty?
             else
-              print "."
+              @logger.progress "."
             end
           end
           sleep 5 if !to_be_watched.empty?
@@ -485,10 +485,10 @@ module Maestro
         @elb_nodes.keys.each do |node_name|
           node_instance = find_elb_node_instance(node_name, all_balancers)
           if node_instance.nil?
-            puts "Node #{node_name} not running. Starting..."
+            @logger.info "Node #{node_name} not running. Starting..."
             to_be_started << node_name
           else
-            puts "Node #{node_name} already running (host: #{node_instance.DNSName})"
+            @logger.info "Node #{node_name} already running (host: #{node_instance.DNSName})"
           end
         end
         to_be_started.each do |node_name|
@@ -496,7 +496,7 @@ module Maestro
           # TODO: What to do about availability zones tied to this elb's instances, but not specified here? Validation error? Leave it to the user?
           elb = @elb.create_load_balancer(:load_balancer_name => node.load_balancer_name, :availability_zones => node.availability_zones, :listeners => node.listeners)
           node.hostname = elb.CreateLoadBalancerResult.DNSName
-          puts "Node #{node_name} started (host: #{node.hostname})"
+          @logger.info "Node #{node_name} started (host: #{node.hostname})"
           if !node.health_check.nil?
             @elb.configure_health_check({:health_check => node.health_check,
                                          :load_balancer_name => node.load_balancer_name})
@@ -507,7 +507,7 @@ module Maestro
             node.ec2_nodes.each do |ec2_node_name|
               instance = find_ec2_node_instance(ec2_node_name, all_instances)
               if instance.nil?
-                puts "ERROR: Ec2 node '#{ec2_node_name}' is not running to map to Elb node '#{node.name}'"
+                @logger.error "ERROR: Ec2 node '#{ec2_node_name}' is not running to map to Elb node '#{node.name}'"
               else
                 instance_ids << instance.instanceId
               end
@@ -522,15 +522,15 @@ module Maestro
                 end
                 registered_instances.sort!
                 if instance_ids.eql?(registered_instances)
-                  puts "Registered Ec2 Nodes #{node.ec2_nodes.inspect} with Elb Node #{node_name}"
+                  @logger.info "Registered Ec2 Nodes #{node.ec2_nodes.inspect} with Elb Node #{node_name}"
                 else
-                  puts "ERROR: Could not register all Ec2 Nodes #{node.ec2_nodes.inspect} with Elb Node #{node_name}. The following instances are registered: #{registered_instances}"
+                  @logger.error "ERROR: Could not register all Ec2 Nodes #{node.ec2_nodes.inspect} with Elb Node #{node_name}. The following instances are registered: #{registered_instances}"
                 end
               else
-                puts "ERROR: Could not register Ec2 Nodes #{node.ec2_nodes.inspect} with Elb Node #{node_name}"
+                @logger.error "ERROR: Could not register Ec2 Nodes #{node.ec2_nodes.inspect} with Elb Node #{node_name}"
               end
             rescue AWS::Error => aws_error
-              puts "ERROR: Could not register Ec2 Nodes #{node.ec2_nodes.inspect} with Elb Node #{node_name}: #{aws_error.message}"
+              @logger.error "ERROR: Could not register Ec2 Nodes #{node.ec2_nodes.inspect} with Elb Node #{node_name}: #{aws_error.message}"
             end
           end
         end
@@ -565,25 +565,25 @@ module Maestro
           node_instance = find_ec2_node_instance(node_name, all_instances)
           if !node.elastic_ip.nil?
             if node_instance.nil?
-              puts "ERROR: Node #{node_name} doesn't appear to be running to associate with Elastic IP #{node.elastic_ip}"
+              @logger.error "ERROR: Node #{node_name} doesn't appear to be running to associate with Elastic IP #{node.elastic_ip}"
             else
               if elastic_ip_allocated?(node.elastic_ip)
                 associated_instance_id = elastic_ip_association(node.elastic_ip)
                 if associated_instance_id.eql?(node_instance.instanceId)
-                  puts "Elastic IP Address #{node.elastic_ip} is already associated with Node #{node_name}"
+                  @logger.info "Elastic IP Address #{node.elastic_ip} is already associated with Node #{node_name}"
                 else
                   if associated_instance_id.nil?
                     @ec2.associate_address(:instance_id => node_instance.instanceId, :public_ip => node.elastic_ip)
-                    puts "Associated Elastic IP Address #{node.elastic_ip} with Node #{node_name}"
+                    @logger.info "Associated Elastic IP Address #{node.elastic_ip} with Node #{node_name}"
                   else
-                    puts "Elastic IP Address #{node.elastic_ip} is associated with the wrong instance (instance #{associated_instance_id}). Disassociating."
+                    @logger.info "Elastic IP Address #{node.elastic_ip} is associated with the wrong instance (instance #{associated_instance_id}). Disassociating."
                     @ec2.disassociate_address(:public_ip => node.elastic_ip)
                     @ec2.associate_address(:instance_id => node_instance.instanceId, :public_ip => node.elastic_ip)
-                    puts "Associated Elastic IP Address #{node.elastic_ip} with Node #{node_name}"
+                    @logger.info "Associated Elastic IP Address #{node.elastic_ip} with Node #{node_name}"
                   end
                 end
               else
-                puts "ERROR: Elastic IP Address #{node.elastic_ip} is not allocated to this AWS Account"
+                @logger.error "ERROR: Elastic IP Address #{node.elastic_ip} is not allocated to this AWS Account"
               end
             end
           end
@@ -621,17 +621,17 @@ module Maestro
           node_instance = find_ec2_node_instance(node_name, all_instances)
           if !node.ebs_volume_id.nil? && !node.ebs_device.nil?
             if node_instance.nil?
-              puts "ERROR: Node #{node_name} doesn't appear to be running to attach EBS Volume #{node.ebs_volume_id}"
+              @logger.error "ERROR: Node #{node_name} doesn't appear to be running to attach EBS Volume #{node.ebs_volume_id}"
             else
               if ebs_volume_allocated?(node.ebs_volume_id)
                 associated_instance_id = ebs_volume_association(node.ebs_volume_id)
                 if associated_instance_id.eql?(node_instance.instanceId)
-                  puts "EBS Volume #{node.ebs_volume_id} is already attached to Node #{node_name}"
+                  @logger.info "EBS Volume #{node.ebs_volume_id} is already attached to Node #{node_name}"
                 else
                   begin
                     STDOUT.sync = true
                     if associated_instance_id.nil?
-                      print "Attaching EBS Volume #{node.ebs_volume_id} to Node #{node_name}..."
+                      @logger.progress "Attaching EBS Volume #{node.ebs_volume_id} to Node #{node_name}..."
                       @ec2.attach_volume(:instance_id => node_instance.instanceId, :volume_id => node.ebs_volume_id, :device => node.ebs_device)
                       to_be_watched = [node.ebs_volume_id]
                       while !to_be_watched.empty?
@@ -639,13 +639,13 @@ module Maestro
                         if !volumes.volumeSet.item[0].attachmentSet.nil? && volumes.volumeSet.item[0].attachmentSet.item[0].status.eql?("attached")
                           to_be_watched.clear
                         else
-                          print "."
+                          @logger.progress "."
                         end
                         sleep 5 if !to_be_watched.empty?
                       end
-                      puts "done."
+                      @logger.info "done."
                     else
-                      print "EBS Volume #{node.ebs_volume_id} is attached to the wrong instance (instance #{associated_instance_id}). Detaching..."
+                      @logger.progress "EBS Volume #{node.ebs_volume_id} is attached to the wrong instance (instance #{associated_instance_id}). Detaching..."
                       @ec2.detach_volume(:volume_id => node.ebs_volume_id)
                       to_be_watched = [node.ebs_volume_id]
                       while !to_be_watched.empty?
@@ -653,12 +653,12 @@ module Maestro
                         if volumes.volumeSet.item[0].status.eql? "available"
                           to_be_watched.clear
                         else
-                          print "."
+                          @logger.progress "."
                         end
                         sleep 5 if !to_be_watched.empty?
                       end
-                      puts "done."
-                      print "Attaching EBS Volume #{node.ebs_volume_id} to Node #{node_name}..."
+                      @logger.info "done."
+                      @logger.progress "Attaching EBS Volume #{node.ebs_volume_id} to Node #{node_name}..."
                       @ec2.attach_volume(:instance_id => node_instance.instanceId, :volume_id => node.ebs_volume_id, :device => node.ebs_device)
                       to_be_watched = [node.ebs_volume_id]
                       while !to_be_watched.empty?
@@ -666,18 +666,18 @@ module Maestro
                         if !volumes.volumeSet.item[0].attachmentSet.nil? && volumes.volumeSet.item[0].attachmentSet.item[0].status.eql?("attached")
                           to_be_watched.clear
                         else
-                          print "."
+                          @logger.progress "."
                         end
                         sleep 5 if !to_be_watched.empty?
                       end
-                      puts "done."
+                      @logger.info "done."
                     end
                   rescue AWS::Error => aws_error
-                    puts "Error attaching EBS Volume #{node.ebs_volume_id} to Node #{node_name}: #{aws_error.inspect}"
+                    @logger.error "Error attaching EBS Volume #{node.ebs_volume_id} to Node #{node_name}: #{aws_error.inspect}"
                   end
                 end
               else
-                puts "ERROR: EBS Volume #{node.ebs_volume_id} is not allocated to this AWS Account"
+                @logger.error "ERROR: EBS Volume #{node.ebs_volume_id} is not allocated to this AWS Account"
               end
             end
           end
@@ -688,21 +688,21 @@ module Maestro
       def upload_chef_assets
         bucket = AWS::S3::Bucket.find(chef_bucket)
         if bucket.nil?
-          puts "Creating S3 Bucket '#{chef_bucket}'..."
+          @logger.info "Creating S3 Bucket '#{chef_bucket}'..."
           bucket = AWS::S3::Bucket.create(chef_bucket, :access => :private)
-          puts "Created S3 Bucket '#{chef_bucket}'" if !bucket.nil?
+          @logger.info "Created S3 Bucket '#{chef_bucket}'" if !bucket.nil?
         end
 
-        puts "Packaging Chef assets..."
+        @logger.info "Packaging Chef assets..."
         chef_tgz = Maestro.chef_archive
-        puts "Uploading Chef assets to S3 bucket '#{chef_bucket}'..."
+        @logger.info "Uploading Chef assets to S3 bucket '#{chef_bucket}'..."
         AWS::S3::S3Object.store(MAESTRO_CHEF_ARCHIVE, File.open(chef_tgz, "r"), chef_bucket, :access => :private)
-        puts "Chef assets uploaded to S3 Bucket '#{chef_bucket}' as key '#{MAESTRO_CHEF_ARCHIVE}'"
+        @logger.info "Chef assets uploaded to S3 Bucket '#{chef_bucket}' as key '#{MAESTRO_CHEF_ARCHIVE}'"
 
-        puts "Uploading Node JSON files to S3 Bucket '#{chef_bucket}'..." if !@configurable_nodes.empty?
+        @logger.info "Uploading Node JSON files to S3 Bucket '#{chef_bucket}'..." if !@configurable_nodes.empty?
         @configurable_nodes.each_pair do |node_name, node|
           AWS::S3::S3Object.store(node.json_filename, node.json, chef_bucket, :access => :private)
-          puts "Node #{node.name} JSON file uploaded to S3 Bucket '#{chef_bucket}' as key '#{node.json_filename}'"
+          @logger.info "Node #{node.name} JSON file uploaded to S3 Bucket '#{chef_bucket}' as key '#{node.json_filename}'"
         end
       end
 
@@ -722,13 +722,13 @@ module Maestro
         @ec2_nodes.each_pair do |node_name, node|
           node_instance = find_ec2_node_instance(node_name, all_instances)
           if node_instance.nil?
-            puts "ERROR: node #{node_name} not running!"
+            @logger.error "ERROR: node #{node_name} not running!"
           else
             node.hostname = node_instance.dnsName
           end
         end
       end
-      
+
       # Ensures that the Nodes of this Cloud are terminated
       def ensure_nodes_terminated
         ensure_elb_nodes_terminated
@@ -744,19 +744,19 @@ module Maestro
         @ec2_nodes.each_pair do |node_name, node|
           node_instance = find_ec2_node_instance(node_name, all_instances)
           if node_instance.nil?
-            puts "Node #{node_name} already terminated"
+            @logger.info "Node #{node_name} already terminated"
           elsif node_instance.instanceState.name.eql?("shutting-down")
-            puts "Node #{node_name} terminating..."
+            @logger.info "Node #{node_name} terminating..."
             to_be_watched << node_name
           elsif node_instance.instanceState.name.eql?("pending") || node_instance.instanceState.name.eql?("running")
-            puts "Node #{node_name} running. Terminating..."
+            @logger.info "Node #{node_name} running. Terminating..."
             to_be_terminated << node_instance.instanceId
             to_be_watched << node_name
           end
         end
         if !to_be_terminated.empty?
           @ec2.terminate_instances(:instance_id => to_be_terminated)
-          print "Waiting for Nodes #{to_be_watched.inspect} to terminate..." if !to_be_watched.empty?
+          @logger.progress "Waiting for Nodes #{to_be_watched.inspect} to terminate..." if !to_be_watched.empty?
         end
         STDOUT.sync = true
         while !to_be_watched.empty?
@@ -764,12 +764,12 @@ module Maestro
           to_be_watched.each do |node_name|
             instance = find_ec2_node_instance(node_name, instances)
             if instance.nil?
-              puts ""
-              puts "Node #{node_name} terminated"
+              @logger.info ""
+              @logger.info "Node #{node_name} terminated"
               to_be_watched.delete(node_name)
-              print "Waiting for Nodes #{to_be_watched.inspect} to terminate..." if !to_be_watched.empty?
+              @logger.progress "Waiting for Nodes #{to_be_watched.inspect} to terminate..." if !to_be_watched.empty?
             else
-              print "."
+              @logger.progress "."
             end
           end
           sleep 5 if !to_be_watched.empty?
@@ -783,16 +783,16 @@ module Maestro
         @elb_nodes.each_pair do |node_name, node|
           instance = find_elb_node_instance(node_name, balancers)
           if !instance.nil?
-            puts "Node #{node_name} terminating..."
+            @logger.info "Node #{node_name} terminating..."
             to_be_deleted[node_name] = node.load_balancer_name
           else
-            puts "Node #{node_name} already terminated"
+            @logger.info "Node #{node_name} already terminated"
           end
         end
         if !to_be_deleted.empty?
           to_be_deleted.each_pair do |node_name, load_balancer_name|
             @elb.delete_load_balancer(:load_balancer_name => load_balancer_name)
-            puts "Node #{node_name} terminated"
+            @logger.info "Node #{node_name} terminated"
           end
         end
       end
@@ -806,26 +806,26 @@ module Maestro
         @rds_nodes.each_pair do |node_name, node|
           node_instance = find_rds_node_instance(node.db_instance_identifier, all_instances)
           if node_instance.nil?
-            puts "Node #{node_name} already terminated"
+            @logger.info "Node #{node_name} already terminated"
           elsif node_instance.DBInstanceStatus.eql?("deleting")
-            puts "Node #{node_name} terminating..."
+            @logger.info "Node #{node_name} terminating..."
             to_be_watched << node_name
           elsif (node_instance.DBInstanceStatus.eql?("creating") || 
                  node_instance.DBInstanceStatus.eql?("rebooting") ||
                  node_instance.DBInstanceStatus.eql?("modifying") ||
                  node_instance.DBInstanceStatus.eql?("resetting-mastercredentials") ||
                  node_instance.DBInstanceStatus.eql?("backing-up"))
-            puts "Waiting for Node #{node_name} to finish #{node_instance.DBInstanceStatus} before terminating..."
+            @logger.info "Waiting for Node #{node_name} to finish #{node_instance.DBInstanceStatus} before terminating..."
             wait_for[node_name] = node_instance.DBInstanceStatus
           elsif (node_instance.DBInstanceStatus.eql?("available") ||
                  node_instance.DBInstanceStatus.eql?("failed") ||
                  node_instance.DBInstanceStatus.eql?("storage-full"))
-            puts "Node #{node_name} running. Terminating..."
+            @logger.info "Node #{node_name} running. Terminating..."
             to_be_terminated << node_name
           end
         end
 
-        print "Waiting for Nodes #{wait_for.keys.inspect}..." if !wait_for.empty?
+        @logger.progress "Waiting for Nodes #{wait_for.keys.inspect}..." if !wait_for.empty?
         while !wait_for.empty?
           instances =  @rds.describe_db_instances
           wait_for.each_pair do |node_name, status|
@@ -834,12 +834,12 @@ module Maestro
             if (node_instance.DBInstanceStatus.eql?("available") ||
                 node_instance.DBInstanceStatus.eql?("failed") ||
                 node_instance.DBInstanceStatus.eql?("storage-full"))
-              puts "Node #{node_name} done #{status}. Terminating..."
+              @logger.info "Node #{node_name} done #{status}. Terminating..."
               wait_for.delete(node_name)
               to_be_terminated << node_name
-              print "Waiting for Nodes #{wait_for.keys.inspect}..." if !wait_for.empty?
+              @logger.progress "Waiting for Nodes #{wait_for.keys.inspect}..." if !wait_for.empty?
             else
-              print "."
+              @logger.progress "."
             end
           end
           sleep 5 if !wait_for.empty?
@@ -849,24 +849,24 @@ module Maestro
           node = @nodes[node_name]
           now = DateTime.now
           final_snapshot = node.db_instance_identifier + "-" + now.to_s.gsub(/:/, '')
-          puts "Terminating Node #{node_name} with final snapshot id '#{final_snapshot}' ..."
+          @logger.info "Terminating Node #{node_name} with final snapshot id '#{final_snapshot}' ..."
           result = @rds.delete_db_instance(:db_instance_identifier => node.db_instance_identifier, :final_db_snapshot_identifier => final_snapshot)
           to_be_watched << node_name
         end
         STDOUT.sync = true
-        print "Waiting for Nodes #{to_be_watched.inspect} to terminate. This may take several minutes..." if !to_be_watched.empty?
+        @logger.progress "Waiting for Nodes #{to_be_watched.inspect} to terminate. This may take several minutes..." if !to_be_watched.empty?
         while !to_be_watched.empty?
           instances =  @rds.describe_db_instances
           to_be_watched.each do |node_name|
             node = @nodes[node_name]
             instance = find_rds_node_instance(node.db_instance_identifier, instances)
             if instance.nil?
-              puts ""
-              puts "Node #{node_name} terminated"
+              @logger.info ""
+              @logger.info "Node #{node_name} terminated"
               to_be_watched.delete(node_name)
-              print "Waiting for Nodes #{to_be_watched.inspect} to terminate. This may take several minutes..." if !to_be_watched.empty?
+              @logger.progress "Waiting for Nodes #{to_be_watched.inspect} to terminate. This may take several minutes..." if !to_be_watched.empty?
             else
-              print "."
+              @logger.progress "."
             end
           end
           sleep 5 if !to_be_watched.empty?

@@ -5,8 +5,8 @@ begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
     gem.name = "maestro"
-    gem.summary = %Q{Maestro: Orchestrate your clouds.}
-    gem.description = %Q{Maestro is a cloud provisioning and application deployment utility for your Ruby and Ruby on Rails applications.}
+    gem.summary = %Q{Maestro: Conduct your clouds.}
+    gem.description = %Q{Maestro is a cloud provisioning, configuration, and deployment utility for your Ruby and Ruby On Rails applications.}
     gem.homepage = "http://github.com/bploetz/maestro"
     gem.authors = ["Brian Ploetz"]
     gem.add_development_dependency "thoughtbot-shoulda", "= 2.10.2"
@@ -17,6 +17,7 @@ begin
     gem.add_dependency "archive-tar-minitar", "= 0.5.2"
     gem.add_dependency "amazon-ec2", "= 0.9.11"
     gem.add_dependency "aws-s3", "= 0.6.2"
+    gem.add_dependency "log4r", "= 1.1.7"
     # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
   end
   Jeweler::GemcutterTasks.new
