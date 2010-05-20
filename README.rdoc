@@ -1,4 +1,4 @@
-= Maestro: Orchestrate your clouds
+= Maestro: Conduct your clouds
 
 Maestro is a cloud provisioning, configuration, and deployment utility for your Ruby and Ruby On Rails applications.
 Simply declare the structure of your clouds via configuration files, create Chef[link:http://wiki.opscode.com/display/chef/Home]
