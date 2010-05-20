@@ -4,7 +4,7 @@ namespace :maestro do
 
   desc "Creates the Maestro config directory structure. If the directories already exist, no action is taken."
   task :create_config_dirs do
-    Maestro.validate_configs
+    Maestro.create_config_dirs
   end
 
   desc "Validates your Maestro configuration files"

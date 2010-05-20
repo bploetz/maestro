@@ -418,12 +418,12 @@ module Maestro
             node = @nodes[node_name]
             instance = find_rds_node_instance(node.db_instance_identifier, instances)
             if !instance.nil? && instance.DBInstanceStatus.eql?("available")
-              @logger.info ""
+              @logger.progress "\n"
               @logger.info "Node #{node_name} started (host: #{instance.Endpoint.Address}, port: #{instance.Endpoint.Port})"
               to_be_watched.delete(node_name)
               @logger.progress "Waiting for Nodes #{to_be_watched.inspect} to start. This may take several minutes..." if !to_be_watched.empty?
             elsif !instance.nil? && instance.DBInstanceStatus.eql?("failed")
-              @logger.info ""
+              @logger.progress "\n"
               @logger.info "Node #{node_name} failed to start!"
               to_be_watched.delete(node_name)
               @logger.progress "Waiting for Nodes #{to_be_watched.inspect} to start. This may take several minutes..." if !to_be_watched.empty?
@@ -466,7 +466,7 @@ module Maestro
           to_be_watched.each do |node_name|
             instance = find_ec2_node_instance(node_name, instances)
             if !instance.nil? && instance.instanceState.name.eql?("running")
-              @logger.info ""
+              @logger.progress "\n"
               @logger.info "Node #{node_name} started (instance #{instance.instanceId}, host: #{instance.dnsName})"
               to_be_watched.delete(node_name)
               @logger.progress "Waiting for Nodes #{to_be_watched.inspect} to start..." if !to_be_watched.empty?
@@ -764,7 +764,7 @@ module Maestro
           to_be_watched.each do |node_name|
             instance = find_ec2_node_instance(node_name, instances)
             if instance.nil?
-              @logger.info ""
+              @logger.progress "\n"
               @logger.info "Node #{node_name} terminated"
               to_be_watched.delete(node_name)
               @logger.progress "Waiting for Nodes #{to_be_watched.inspect} to terminate..." if !to_be_watched.empty?
@@ -834,6 +834,7 @@ module Maestro
             if (node_instance.DBInstanceStatus.eql?("available") ||
                 node_instance.DBInstanceStatus.eql?("failed") ||
                 node_instance.DBInstanceStatus.eql?("storage-full"))
+              @logger.progress "\n"
               @logger.info "Node #{node_name} done #{status}. Terminating..."
               wait_for.delete(node_name)
               to_be_terminated << node_name
@@ -861,7 +862,7 @@ module Maestro
             node = @nodes[node_name]
             instance = find_rds_node_instance(node.db_instance_identifier, instances)
             if instance.nil?
-              @logger.info ""
+              @logger.progress "\n"
               @logger.info "Node #{node_name} terminated"
               to_be_watched.delete(node_name)
               @logger.progress "Waiting for Nodes #{to_be_watched.inspect} to terminate. This may take several minutes..." if !to_be_watched.empty?

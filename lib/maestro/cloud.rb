@@ -119,7 +119,7 @@ module Maestro
             install_chef_solo(session)
             configure_chef_solo(session)
             session.close
-            @logger.info ""
+            @logger.progress "\n"
           else
             @logger.info "chef-solo already installed on Nodes #{@configurable_nodes.keys.inspect}"
           end
@@ -127,6 +127,7 @@ module Maestro
           session = open_ssh_session
           run_chef_solo(session)
           session.close
+          @logger.info "Configuration of #{@name} Cloud complete"
         end
       end
 
@@ -193,6 +194,7 @@ module Maestro
             if the_node.nil?
               @logger.error "Could not find node matching hostname #{channel[:host]}. This should not happen."
             else
+              the_node.logger.info "Installing chef-solo"
               channel.request_pty {|ch, success| abort "could not obtain pty" if !success}
               channel.exec(cmd) do |ch, success|
                 @logger.progress "."

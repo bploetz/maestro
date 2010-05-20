@@ -100,9 +100,9 @@ module Maestro
   # Returns a Hash of Clouds defined in the Maestro clouds configuration directory
   def self.clouds
     if defined? RAILS_ROOT
-      get_clouds(clouds_config_dir(rails_config_dir))
+      get_clouds(clouds_config_dir(rails_maestro_config_dir))
     elsif ENV.has_key? MAESTRO_DIR_ENV_VAR
-      get_clouds(clouds_config_dir(standalone_config_dir))
+      get_clouds(clouds_config_dir(standalone_maestro_config_dir))
     else
       raise "Maestro not configured correctly. Either RAILS_ROOT or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
     end
