@@ -205,15 +205,23 @@ module Maestro
     raise "Cannot create Maestro log directory: #{dir} doesn't exist." if !File.exist?(dir)
     raise "Cannot create Maestro log directory: #{dir} is not a directory." if !File.directory?(dir)
     raise "Cannot create Maestro log directory: #{dir} is not writable." if !File.writable?(dir)
-    base_dir = dir
-    base_dir.chop! if base_dir =~ /\/$/
-    if !File.exist?("#{base_dir}/maestro")
-      Dir.mkdir("#{base_dir}/maestro")
-      @logger.info "Created #{base_dir}/maestro"
-    end
-    if !File.exist?("#{base_dir}/maestro/clouds")
-      Dir.mkdir("#{base_dir}/maestro/clouds")
-      @logger.info "Created #{base_dir}/maestro/clouds"
+    begin
+      base_dir = dir
+      base_dir.chop! if base_dir =~ /\/$/
+      if !File.exist?("#{base_dir}/maestro")
+        Dir.mkdir("#{base_dir}/maestro")
+        @logger.info "Created #{base_dir}/maestro"
+      end
+      if !File.exist?("#{base_dir}/maestro/clouds")
+        Dir.mkdir("#{base_dir}/maestro/clouds")
+        @logger.info "Created #{base_dir}/maestro/clouds"
+      end
+    rescue SystemCallError => syserr
+      @logger.error "Error creating cloud directory"
+      @logger.error syserr
+    rescue StandardError => serr
+      @logger.error "Unexpected Error"
+      @logger.error serr
     end
   end
 

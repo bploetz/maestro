@@ -279,6 +279,10 @@ module Maestro
       # creates log directory and files for this cloud. If the log directory or files exist, no action is taken.
       def init_logs
         begin
+          if !File.exists?(Maestro.maestro_log_directory)
+            Maestro.create_log_dirs
+            @logger.info "Created #{Maestro.maestro_log_directory}"
+          end
           clouds_dir = Maestro.maestro_log_directory + "/clouds"
           if !File.exists?(clouds_dir)
             Dir.mkdir(clouds_dir)

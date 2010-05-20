@@ -9,8 +9,8 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Brian Ploetz"]
-  s.date = %q{2010-05-10}
-  s.description = %q{Maestro is a cloud provisioning and application deployment utility for your Ruby and Ruby on Rails applications.}
+  s.date = %q{2010-05-19}
+  s.description = %q{Maestro is a cloud provisioning, configuration, and deployment utility for your Ruby and Ruby On Rails applications.}
   s.extra_rdoc_files = [
     "LICENSE",
      "README.rdoc"
@@ -18,7 +18,6 @@ Gem::Specification.new do |s|
   s.files = [
     ".document",
      ".gitignore",
-     ".project",
      "LICENSE",
      "README.rdoc",
      "Rakefile",
@@ -27,6 +26,8 @@ Gem::Specification.new do |s|
      "lib/maestro/cloud.rb",
      "lib/maestro/cloud/aws.rb",
      "lib/maestro/dsl_property.rb",
+     "lib/maestro/log4r/console_formatter.rb",
+     "lib/maestro/log4r/file_formatter.rb",
      "lib/maestro/node.rb",
      "lib/maestro/operating_system.rb",
      "lib/maestro/operating_system/cent_os.rb",
@@ -39,6 +40,11 @@ Gem::Specification.new do |s|
      "maestro.gemspec",
      "rails/init.rb",
      "test/integration/base_aws.rb",
+     "test/integration/fixtures/config/maestro/cookbooks/emacs/metadata.json",
+     "test/integration/fixtures/config/maestro/cookbooks/emacs/metadata.rb",
+     "test/integration/fixtures/config/maestro/cookbooks/emacs/recipes/default.rb",
+     "test/integration/fixtures/config/maestro/roles/default.json",
+     "test/integration/fixtures/config/maestro/roles/web.json",
      "test/integration/helper.rb",
      "test/integration/test_aws_cloud.rb",
      "test/integration/test_cent_os.rb",
@@ -62,6 +68,7 @@ Gem::Specification.new do |s|
      "test/unit/test_debian.rb",
      "test/unit/test_fedora.rb",
      "test/unit/test_invalid_mode.rb",
+     "test/unit/test_maestro.rb",
      "test/unit/test_node.rb",
      "test/unit/test_operating_system.rb",
      "test/unit/test_rails_mode.rb",
@@ -73,9 +80,11 @@ Gem::Specification.new do |s|
   s.rdoc_options = ["--charset=UTF-8"]
   s.require_paths = ["lib"]
   s.rubygems_version = %q{1.3.5}
-  s.summary = %q{Maestro: Orchestrate your clouds.}
+  s.summary = %q{Maestro: Conduct your clouds.}
   s.test_files = [
     "test/integration/base_aws.rb",
+     "test/integration/fixtures/config/maestro/cookbooks/emacs/metadata.rb",
+     "test/integration/fixtures/config/maestro/cookbooks/emacs/recipes/default.rb",
      "test/integration/helper.rb",
      "test/integration/test_aws_cloud.rb",
      "test/integration/test_cent_os.rb",
@@ -92,6 +101,7 @@ Gem::Specification.new do |s|
      "test/unit/test_debian.rb",
      "test/unit/test_fedora.rb",
      "test/unit/test_invalid_mode.rb",
+     "test/unit/test_maestro.rb",
      "test/unit/test_node.rb",
      "test/unit/test_operating_system.rb",
      "test/unit/test_rails_mode.rb",
@@ -113,6 +123,7 @@ Gem::Specification.new do |s|
       s.add_runtime_dependency(%q<archive-tar-minitar>, ["= 0.5.2"])
       s.add_runtime_dependency(%q<amazon-ec2>, ["= 0.9.11"])
       s.add_runtime_dependency(%q<aws-s3>, ["= 0.6.2"])
+      s.add_runtime_dependency(%q<log4r>, ["= 1.1.7"])
     else
       s.add_dependency(%q<thoughtbot-shoulda>, ["= 2.10.2"])
       s.add_dependency(%q<net-ssh>, ["= 2.0.15"])
@@ -122,6 +133,7 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<archive-tar-minitar>, ["= 0.5.2"])
       s.add_dependency(%q<amazon-ec2>, ["= 0.9.11"])
       s.add_dependency(%q<aws-s3>, ["= 0.6.2"])
+      s.add_dependency(%q<log4r>, ["= 1.1.7"])
     end
   else
     s.add_dependency(%q<thoughtbot-shoulda>, ["= 2.10.2"])
@@ -132,6 +144,7 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<archive-tar-minitar>, ["= 0.5.2"])
     s.add_dependency(%q<amazon-ec2>, ["= 0.9.11"])
     s.add_dependency(%q<aws-s3>, ["= 0.6.2"])
+    s.add_dependency(%q<log4r>, ["= 1.1.7"])
   end
 end
 
