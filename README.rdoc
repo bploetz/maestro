@@ -116,17 +116,21 @@ that these capabilities are enabled in your Amazon Web Services account. See the
 
 Let's look at each of these sections in more detail:
 
-===== aws_cloud <i>cloud_name</i> do
+==== aws_cloud <i>cloud_name</i>
 
 The aws_cloud method declares an Amazon Web Services cloud with the given name. The cloud name can be either a symbol or a string.
 
   aws_cloud :dev do
+     ...
+  end
 
   aws_cloud "dev" do
+     ...
+  end
 
 A cloud name may only contain alphanumerics and dashes.
 
-===== AWS cloud attributes
+==== aws_cloud attributes
 
 The following attributes must be present after your aws_cloud declaration:
 
@@ -138,10 +142,11 @@ The following attributes must be present after your aws_cloud declaration:
 - <b>chef_bucket</b>: The name of the Amazon S3 Bucket where you want your Chef recipes and roles stored. If this Bucket does not exist, Maestro will create it for you. Please note that the Bucket itself, and all objects stored within the Bucket use the canned 'private' access policy, meaning no one but the Bucket owner (i.e. you) may access the Bucket or the objects within it. Maestro uses query string authentication when accessing the objects to ensure the integrity of your data.
 
 
-===== roles do
+==== roles
 The <code>roles</code> method allows you to apply configuration to all of the nodes in your cloud which are in a given role, rather than repeating that configuration for all nodes individually.
 
-===== role <i>role_name</i> do
+==== role <i>role_name</i>
+
 A role corresponds to a Chef role that the configurable nodes in your Cloud can play. A role name may either be a symbol or a string.
 
     role "web" do
@@ -150,21 +155,21 @@ A role corresponds to a Chef role that the configurable nodes in your Cloud can 
 
 A role name may only contain alphanumerics and dashes.
 
-===== role attributes
+==== role attributes
 
 A role may configure the following attributes:
 
 - <b>public_ports</b>: The ports that should be open to the public internet, for example ports 80 and 443 for a web role. The value of this attribute must be an array of integers.
 
 
-===== nodes do
+==== nodes
 The <code>nodes</code> method is where you define the nodes (servers, machine, VMs, devices, etc…) in your cloud.
 
-===== AWS Node types
+==== AWS Node types
 
 The following are the AWS node types supported by Maestro:
 
-<b><code>ec2_node <i>node-name</i> do</code></b>
+==== ec2_node <i>node-name</i>
 
 Creates an Elastic Cloud Compute (EC2) node. An EC2 node name may only contain alphanumerics and dashes.
 
@@ -196,7 +201,7 @@ An example ec2_node:
     end
 
 
-<b><code>elb_node <i>node-name</i> do</code></b>
+==== elb_node <i>node-name</i>
 
 Creates an Elastic Load Balancer (ELB) node. An ELB node name may only contain alphanumerics and dashes.
 
@@ -217,7 +222,7 @@ An example elb_node:
     end
 
 
-<b><code>rds_node <i>node-name</i> do</code></b>
+==== rds_node <i>node-name</i>
 
 Creates a Relational Database Service (RDS) node. An RDS node name may only contain alphanumerics and dashes.
 
@@ -257,7 +262,7 @@ An example rds_node:
     end
 
 
-===== A note about node definitions
+==== A note about node definitions
 
 If your cloud has a large number of nodes which are identical other than their name, defining each node individually with a node method would be tedious.
 Don't forget that your cloud definition files are Ruby, which allows you to do things like the following:
