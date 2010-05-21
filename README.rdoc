@@ -8,7 +8,7 @@ Maestro currently supports the Amazon Web Services cloud. Support for other clou
 
 Maestro currently supports the following Linux distributions:
 
- Ubuntu (9.10, 9.04, 8.10, 8.04)
+ Ubuntu (10.04, 9.10, 9.04, 8.10, 8.04)
  Debian (6.0, 5.0)
  Fedora (8)
  CentOS (5.4)
@@ -22,7 +22,7 @@ Add the following gem dependency to your Rails project's <code>config/environmen
 
     Rails::Initializer.run do |config|
 
-      config.gem "the-maestro", :lib => "maestro", :version => "0.2.0", :source => "http://gemcutter.org"
+      config.gem "the-maestro", :lib => "maestro", :version => "0.3.0", :source => "http://gemcutter.org"
 
     end
 

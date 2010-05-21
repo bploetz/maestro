@@ -20,6 +20,12 @@ tmtags
 coverage
 rdoc
 pkg
+test/integration/fixtures/log/*
+test/integration/fixtures/log/**/*
+test/unit/fixtures/rails/*
+test/unit/fixtures/rails/**/*
+test/unit/fixtures/standalone/*
+test/unit/fixtures/standalone/**/*
 
 ## PROJECT::SPECIFIC
 .loadpath

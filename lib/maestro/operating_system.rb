@@ -5,7 +5,9 @@ module Maestro
     # if the operating system cannot be determined or is unsupported by Maestro.
     def self.create_from_etc_issue(etc_issue_str)
       raise StandardError, "Invalid etc_issue_str" if (etc_issue_str.nil? || etc_issue_str.empty?)
-      if etc_issue_str.include?("Ubuntu 9.10")
+      if etc_issue_str.include?("Ubuntu 10.04")
+        Ubuntu1004.new(etc_issue_str)
+      elsif etc_issue_str.include?("Ubuntu 9.10")
         Ubuntu910.new(etc_issue_str)
       elsif etc_issue_str.include?("Ubuntu 9.04")
         Ubuntu904.new(etc_issue_str)

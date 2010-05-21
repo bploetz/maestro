@@ -323,9 +323,17 @@ module Maestro
       def open_ssh_session(cnodes=[])
         handler = Proc.new do |server|
           server[:connection_attempts] ||= 0
-          if server[:connection_attempts] < 50
+          if server[:connection_attempts] < 6
             server[:connection_attempts] += 1
-            sleep 2
+            the_node = nil
+            @configurable_nodes.each_pair {|name, node| the_node = node if server.host.eql? node.hostname}
+            if the_node.nil?
+              @logger.error "Could not find node matching hostname #{server.host}. This should not happen."
+              throw :go, :raise
+            else
+              @logger.info "Could not connect to Node #{the_node.name}. Trying again in 10 seconds..."
+            end
+            sleep 10
             throw :go, :retry
           else
             throw :go, :raise

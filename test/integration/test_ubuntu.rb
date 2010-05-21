@@ -13,6 +13,8 @@ class TestUbuntu < Test::Unit::TestCase
     #######################
 
     setup do
+      ENV[Maestro::MAESTRO_DIR_ENV_VAR] = File.join(File.dirname(File.expand_path(__FILE__)), 'fixtures')
+      Maestro.create_log_dirs
       credentials = @credentials
       @cloud = aws_cloud :maestro_ubuntu_itest do
         keypair_name credentials[:keypair_name]
@@ -79,12 +81,30 @@ class TestUbuntu < Test::Unit::TestCase
       cloud_security_groups.each do |group_name|
         @ec2.delete_security_group(:group_name => group_name)
       end
+
+      FileUtils.rm_rf([Maestro.maestro_log_directory], :secure => true) if File.exists?(Maestro.maestro_log_directory)
+      ENV.delete Maestro::MAESTRO_DIR_ENV_VAR
     end
 
 
     #######################
     # Tests
     #######################
+
+    context "Ubuntu 10.04" do
+      should "install chef-solo" do
+        @node.ami "ami-2d4aa444"
+        @node.ssh_user "ubuntu"
+        assert_nothing_raised do
+          @cloud.connect!
+          @cloud.start
+          @cloud.get_configurable_node_hostnames
+          assert !@cloud.chef_solo_installed?[0]
+          @cloud.install_chef_solo
+          assert @cloud.chef_solo_installed?[0]
+        end
+      end
+    end
 
     context "Ubuntu 9.10" do
       should "install chef-solo" do
