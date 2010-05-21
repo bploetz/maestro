@@ -22,7 +22,7 @@ Add the following gem dependency to your Rails project's <code>config/environmen
 
     Rails::Initializer.run do |config|
 
-      config.gem "the-maestro", :lib => "maestro", :version => "0.3.0", :source => "http://gemcutter.org"
+      config.gem "the-maestro", :lib => "maestro", :version => "0.3.1", :source => "http://gemcutter.org"
 
     end
 
