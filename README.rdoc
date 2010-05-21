@@ -22,13 +22,23 @@ Add the following gem dependency to your Rails project's <code>config/environmen
 
     Rails::Initializer.run do |config|
 
-      config.gem "the-maestro", :version => '0.2.0'
+      config.gem "the-maestro", :lib => "maestro", :version => "0.2.0", :source => "http://gemcutter.org"
 
     end
+
+Then run the following to install the Maestro gem:
+
+    sudo rake gems:install
+
+You may optionally unpack Maestro into vendor/gems by running:
+
+    sudo rake gems:unpack:dependencies
 
 You'll interact with Maestro through custom Rake tasks that Maestro adds to your Rails project. Until {this}[https://rails.lighthouseapp.com/projects/8994/tickets/59] Rails issue is resolved, you'll need to add this to your Rails project's Rakefile:
 
     require 'maestro/tasks'
+
+Make sure the Maestro gem in successfully installed before adding this line to your Rails project's Rakefile.
 
 === Configuration
 

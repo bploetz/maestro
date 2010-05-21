@@ -73,7 +73,8 @@ Gem::Specification.new do |s|
      "test/unit/test_rails_mode.rb",
      "test/unit/test_role.rb",
      "test/unit/test_standalone_mode.rb",
-     "test/unit/test_ubuntu.rb"
+     "test/unit/test_ubuntu.rb",
+     "the-maestro.gemspec"
   ]
   s.homepage = %q{http://github.com/bploetz/maestro}
   s.rdoc_options = ["--charset=UTF-8"]
