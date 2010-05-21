@@ -1,7 +1,7 @@
-= Maestro: Conduct your clouds
+<b>Maestro: Conduct your clouds</b>
 
 Maestro is a cloud provisioning, configuration, and deployment utility for your Ruby and Ruby On Rails applications.
-Simply declare the structure of your clouds via configuration files, create Chef[link:http://wiki.opscode.com/display/chef/Home]
+Simply declare the structure of your clouds via configuration files, create {Chef}[http://wiki.opscode.com/display/chef/Home]
 recipes to configure the nodes in your clouds, and Maestro takes care of the rest.
 
 Maestro currently supports the Amazon Web Services cloud. Support for other cloud providers is on the roadmap.
@@ -22,11 +22,11 @@ Add the following gem dependency to your Rails project's <code>config/environmen
 
     Rails::Initializer.run do |config|
 
-      config.gem "maestro", :version => '0.1.0'
+      config.gem "the-maestro", :version => '0.2.0'
 
     end
 
-You'll interact with Maestro through custom Rake tasks that Maestro adds to your Rails project. Until this[link:https://rails.lighthouseapp.com/projects/8994/tickets/59] Rails issue is resolved, you'll need to add this to your Rails project's Rakefile:
+You'll interact with Maestro through custom Rake tasks that Maestro adds to your Rails project. Until {this}[https://rails.lighthouseapp.com/projects/8994/tickets/59] Rails issue is resolved, you'll need to add this to your Rails project's Rakefile:
 
     require 'maestro/tasks'
 
@@ -40,7 +40,7 @@ This will create the following directory structure within your Rails project's c
 
   YOUR_RAILS_APP/config/maestro/clouds/ - the directory which contains your cloud configuration files
   YOUR_RAILS_APP/config/maestro/cookbooks/ - the directory which contains your Chef cookbooks
-  YOUR_RAILS_APP/config/maestro/roles/ - the directory which contains your Chef roles
+  YOUR_RAILS_APP/config/maestro/roles/ - the directory which contains your Chef JSON Roles files
 
 If these directories already exist when running <code>rake maestro:create_config_dirs</code>, no action is taken.
 
@@ -263,10 +263,6 @@ Don't forget that your cloud definition files are Ruby, which allows you to do t
 This will create 10 different ec2_nodes, each with a distinct name ("web-1" through "web-10").
 
 
-==== Configure your nodes
-
-Maestro uses the Chef[link:http://wiki.opscode.com/display/chef/Home] framework to configure the nodes in your cloud.
-
 ==== Validate your configuration
 
 At any time, you may run the following Rake task to validate your Maestro configurations:
@@ -275,7 +271,7 @@ At any time, you may run the following Rake task to validate your Maestro config
 
 This will validate all of the files in your Maestro config directory
 
-=== Orchestrate
+=== Conduct
 
 Maestro creates Rake tasks for all of your valid clouds. These tasks allow you to provision, configure, and deploy to your cloud.
 A very simplistic workflow:
@@ -297,15 +293,24 @@ To see all available rake commands for all of your clouds:
 
     rake -T | grep maestro
 
+=== Configuring the nodes in your cloud
+
+Maestro uses the {Chef}[http://wiki.opscode.com/display/chef/Home] framework to configure the nodes in your cloud. Any roles defined in your
+ec2_nodes must map to Chef Roles with the same name. These Chef Roles are stored as JSON files within <code>YOUR_RAILS_APP/config/maestro/roles/</code>.
+When you run <code>rake maestro:mycloud:configure</code>, Maestro will apply the recipes defined in the Role JSON files on all nodes in that role.
+Your recipes should be placed in <code>YOUR_RAILS_APP/config/maestro/cookbooks</code>.
+
+For a more in depth explanation of Chef, please consult {the Chef documentation}[http://wiki.opscode.com/display/chef/Home].
+
 == Using Maestro with a stand alone Ruby application
 
-    sudo gem install maestro
+    sudo gem install the-maestro
 
 TODO...
 
 
 == Contributing
-Please use the Issues[link:http://github.com/bploetz/maestro/issues] page on the Maestro GitHub site to report bugs or feature requests.
+Please use the {Issues}[http://github.com/bploetz/maestro/issues] page on the Maestro GitHub site to report bugs or feature requests.
 
 To contribute fixes for Issues, please create a topic branch off of the appropriate branch and send a pull request indicating which Issue the commit is for.
 All bug fixes must have a corresponding unit and/or integration test (depending on the nature of the Issue) in order to be accepted.

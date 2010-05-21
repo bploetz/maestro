@@ -4,12 +4,12 @@
 # -*- encoding: utf-8 -*-
 
 Gem::Specification.new do |s|
-  s.name = %q{maestro}
-  s.version = "0.1.0"
+  s.name = %q{the-maestro}
+  s.version = "0.2.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Brian Ploetz"]
-  s.date = %q{2010-05-20}
+  s.date = %q{2010-05-21}
   s.description = %q{Maestro is a cloud provisioning, configuration, and deployment utility for your Ruby and Ruby On Rails applications.}
   s.extra_rdoc_files = [
     "LICENSE",
@@ -37,7 +37,6 @@ Gem::Specification.new do |s|
      "lib/maestro/role.rb",
      "lib/maestro/tasks.rb",
      "lib/maestro/validator.rb",
-     "maestro.gemspec",
      "rails/init.rb",
      "test/integration/base_aws.rb",
      "test/integration/fixtures/config/maestro/cookbooks/emacs/metadata.json",

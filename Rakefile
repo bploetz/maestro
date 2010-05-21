@@ -4,7 +4,7 @@ require 'rake'
 begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
-    gem.name = "maestro"
+    gem.name = "the-maestro"
     gem.summary = %Q{Maestro: Conduct your clouds.}
     gem.description = %Q{Maestro is a cloud provisioning, configuration, and deployment utility for your Ruby and Ruby On Rails applications.}
     gem.homepage = "http://github.com/bploetz/maestro"
