@@ -243,11 +243,25 @@ module Maestro
           session = open_ssh_session
           close_session = true
         end
-        commands = 
-           ["sudo chef-solo -c /tmp/chef-solo.rb -r '#{chef_assets_url()}'"]
         # shut off the stdout outputter and only log to the nodes' log files
         @configurable_nodes.each_pair {|name, node| node.disable_stdout}
-        commands.each do |cmd|
+        # clean up existing cookbooks and roles directories if they exist
+        cleanup_cmds = 
+          ["sudo rm -rf /tmp/chef-solo/cookbooks",
+           "sudo rm -rf /tmp/chef-solo/roles",
+           "sudo mkdir -p /tmp/chef-solo/cookbooks",
+           "sudo mkdir -p /tmp/chef-solo/roles"]
+        cleanup_cmds.each do |str|
+          session.open_channel do |channel|
+            channel.request_pty {|ch, success| abort "could not obtain pty" if !success}
+            channel.exec(str)
+          end
+          session.loop(60)
+        end
+        # run chef-solo
+        chef_solo_commands = 
+           ["sudo chef-solo -c /tmp/chef-solo.rb -r '#{chef_assets_url()}'"]
+        chef_solo_commands.each do |cmd|
           session.open_channel do |channel|
             channel.request_pty {|ch, success| abort "could not obtain pty" if !success}
             # Find the node for this channel's host

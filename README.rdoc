@@ -317,6 +317,19 @@ Your recipes should be placed in <code>YOUR_RAILS_APP/config/maestro/cookbooks</
 
 For a more in depth explanation of Chef, please consult {the Chef documentation}[http://wiki.opscode.com/display/chef/Home].
 
+=== Logging
+
+Maestro will log cloud-wide workflow messages to STDOUT. In addition, log files will be created for your cloud, as well as each of the nodes in your cloud. These
+can be found at the following location:
+
+    YOUR_RAILS_APP/log/maestro/clouds/<i>cloud-name</i>/
+    YOUR_RAILS_APP/log/maestro/clouds/<i>cloud-name</i>/<i>cloud-name</i>.log
+    YOUR_RAILS_APP/log/maestro/clouds/<i>cloud-name</i>/<i>node-name</i>.log
+
+Node-specific messages are not logged to STDOUT, but only to the node's log file. For troubleshooting problems configuring your nodes, please
+consult the individual node log files for information.
+
+
 == Using Maestro with a stand alone Ruby application
 
     sudo gem install the-maestro
