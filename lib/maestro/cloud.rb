@@ -22,6 +22,8 @@ module Maestro
       attr_reader :configurable_nodes
       # String containing the full path to this Cloud's log directory
       attr_reader :log_directory
+      # String containing the full path to this Cloud's log file
+      attr_reader :log_file
       dsl_property :keypair_name, :keypair_file
 
       # Creates a new Cloud object.
@@ -315,6 +317,7 @@ module Maestro
             File.new(cloud_log_file, "a+")
             @logger.info "Created #{cloud_log_file}"
           end
+          @log_file = cloud_log_file
           outputter = Log4r::FileOutputter.new("#{@name}-file", :formatter => FileFormatter.new, :filename => cloud_log_file, :truncate => false)
           @logger.add(outputter)
         rescue RuntimeError => rerr

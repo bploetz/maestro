@@ -19,7 +19,9 @@ module Maestro
       # the IP address of this Node
       attr_accessor :ip_address
       # the logger of this Node
-      attr_accessor :logger
+      attr_reader :logger
+      # String containing the fully qualified path to the log file of this Node
+      attr_reader :log_file
 
       # Creates a new Node
       def initialize(name, cloud, &block)
@@ -65,6 +67,7 @@ module Maestro
             node_log_file = @cloud.log_directory + "/#{@name.to_s}.log"
             if !File.exists?(node_log_file)
               File.new(node_log_file, "a+")
+              @log_file = node_log_file
               @logger.info "Created #{node_log_file}"
             end
             outputter = Log4r::FileOutputter.new("#{@name.to_s}-file", :formatter => FileFormatter.new, :filename => node_log_file, :truncate => false)
@@ -91,7 +94,7 @@ module Maestro
 
       DEFAULT_SSH_USER = "root"
 
-      dsl_property :roles, :ssh_user
+      dsl_property :roles, :ssh_user, :cookbook_attributes
       # the file name of this Configurable Node's Chef Node JSON file
       attr_accessor :json_filename
       # the contents of this Configurable Node's Chef Node JSON file
@@ -116,8 +119,10 @@ module Maestro
       def validate_internal
         super
         invalidate "'#{@name}' Node missing roles map" if roles.nil?
+        if !cookbook_attributes.nil?
+          invalidate "'#{@name}' Node's cookbook_attributes must be a String" if !cookbook_attributes.is_a?(String)
+        end
       end
     end
-
   end
 end

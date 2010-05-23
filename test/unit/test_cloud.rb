@@ -14,6 +14,7 @@ class TestCloud < Test::Unit::TestCase
 
   context "A Cloud instance" do
     setup do
+      ENV[Maestro::MAESTRO_DIR_ENV_VAR] = File.join(File.dirname(File.expand_path(__FILE__)), 'fixtures', 'standalone')
       @cloud = aws_cloud :test do
         keypair_name "XXXXXXX-keypair"
         keypair_file "/path/to/id_rsa-XXXXXXX-keypair"
@@ -30,6 +31,11 @@ class TestCloud < Test::Unit::TestCase
           end
         end
       end
+    end
+
+    teardown do
+      FileUtils.rm_rf([Maestro.maestro_log_directory], :secure => true) if File.exists?(Maestro.maestro_log_directory)
+      ENV.delete Maestro::MAESTRO_DIR_ENV_VAR
     end
 
 
@@ -137,6 +143,19 @@ class TestCloud < Test::Unit::TestCase
       @cloud.validate
       assert !@cloud.valid?
       assert @cloud.validation_errors.any? {|message| !message.index("Missing nodes").nil? }
+    end
+
+    should "create logs" do
+      assert_nothing_raised do
+        base_dir = ENV[Maestro::MAESTRO_DIR_ENV_VAR]
+        assert !File.exists?("#{base_dir}/log/maestro/clouds/foo")
+        assert !File.exists?("#{base_dir}/log/maestro/clouds/foo/foo.log")
+        cloud = aws_cloud :foo do end
+        assert cloud.log_file.eql? "#{base_dir}/log/maestro/clouds/foo/foo.log"
+        assert cloud.log_directory.eql? "#{base_dir}/log/maestro/clouds/foo"
+        assert File.exists?("#{base_dir}/log/maestro/clouds/foo/foo.log")
+        assert File.exists?("#{base_dir}/log/maestro/clouds/foo")
+      end
     end
   end
 end

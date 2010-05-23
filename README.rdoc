@@ -22,7 +22,7 @@ Add the following gem dependency to your Rails project's <code>config/environmen
 
     Rails::Initializer.run do |config|
 
-      config.gem "the-maestro", :lib => "maestro", :version => "0.3.1", :source => "http://gemcutter.org"
+      config.gem "the-maestro", :lib => "maestro", :version => "0.3.2", :source => "http://gemcutter.org"
 
     end
 
@@ -132,7 +132,7 @@ A cloud name may only contain alphanumerics and dashes.
 
 ==== aws_cloud attributes
 
-The following attributes must be present after your aws_cloud declaration:
+The following attributes must be present within your aws_cloud declaration:
 
 - <b>keypair_name</b>: A keypair associated with your Amazon Web Services account
 - <b>keypair_file</b>: Fully qualified path to the keypair file on your computer matching the above keypair_name
@@ -175,7 +175,7 @@ Creates an Elastic Cloud Compute (EC2) node. An EC2 node name may only contain a
 
 The following attributes must be present:
 
-- <b>roles</b>: An array of Chef roles to apply to this node. The role names in the array must match the Chef roles that are defined in config/maestro/roles.
+- <b>roles</b>: An array of Chef roles to apply to this node. The role names in the array must match the Chef roles that are defined in <code>config/maestro/roles</code>.
 - <b>ami</b>: The AMI identifier to use.
 - <b>ssh_user</b>: The name of the user to use to ssh to the instance.
 - <b>instance_type</b>: The instance type to use for this EC2 node.
@@ -183,6 +183,8 @@ The following attributes must be present:
 
 The following attributes are optional:
 
+- <b>cookbook_attributes</b>: Chef cookbook attribute overrides, in JSON format (see {the Chef documentation}[http://wiki.opscode.com/display/chef/Attributes#Attributes-AttributesinJSON] for more information).
+  Since the attribute JSON format necessitates lots of " characters, the use of heredocs is recomended to avoid manual escaping of " characters. See the example below.
 - <b>elastic_ip</b>: The Elastic IP address to associate with this node.
 - <b>ebs_volume_id</b>: The id of the EBS Volume to attach to this node.
 - <b>ebs_device</b>: The device to attach the EBS Volume to.
@@ -195,6 +197,9 @@ An example ec2_node:
       ssh_user "ubuntu"
       instance_type "m1.small"
       availability_zone "us-east-1b"
+      cookbook_attributes <<-COOKBOOK_ATTRIBUTES
+        "apache": { "listen_ports": ["81", "8080"] }
+      COOKBOOK_ATTRIBUTES
       elastic_ip "123.45.678.90"
       ebs_volume_id "vol-xxxxxxxx"
       ebs_device "/dev/sdh"
@@ -284,9 +289,9 @@ At any time, you may run the following Rake task to validate your Maestro config
 
     rake maestro:validate_configs
 
-This will validate all of the files in your Maestro config directory
+This will validate all of the files in your Maestro config directory, and report any errors.
 
-=== Conduct
+=== Conduct!
 
 Maestro creates Rake tasks for all of your valid clouds. These tasks allow you to provision, configure, and deploy to your cloud.
 A very simplistic workflow:
@@ -337,6 +342,11 @@ consult the individual node log files for information.
 TODO...
 
 
+== Where To Get Help
+
+The {Maestro Users Google Group}[http://groups.google.com/group/maestro-users] is the recommended place to get help.
+
+
 == Contributing
 Please use the {Issues}[http://github.com/bploetz/maestro/issues] page on the Maestro GitHub site to report bugs or feature requests.
 
@@ -383,7 +393,7 @@ To generate RDoc locally:
 
 (The MIT License) 
 
-Copyright (c) 2010 Brian Ploetz <bploetz@gmail.com>
+Copyright (c) 2010 Brian Ploetz <bploetz (at) gmail.com>
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
