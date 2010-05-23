@@ -110,7 +110,17 @@ module Maestro
           @json.chop! if @json =~ /\s$/
           @json.chop! if @json =~ /,$/
         end
-        @json = @json + "]}"
+        @json = @json + "]"
+        if !@cookbook_attributes.nil?
+          @cookbook_attributes.gsub!(/(\n|\n\r)\s{0,}/, ' ')
+          @cookbook_attributes.strip!
+          @cookbook_attributes.chop! if @cookbook_attributes =~ /,$/
+          @cookbook_attributes.slice!(0) if @cookbook_attributes =~ /^\{/
+          @json = @json + ", "
+          @json = @json + @cookbook_attributes
+          @json.chop! if @json =~ /\s$/
+        end
+        @json = @json + " }"
       end
 
       protected

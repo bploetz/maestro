@@ -8,7 +8,21 @@ class TestConfigurableNode < Test::Unit::TestCase
       @cloud = aws_cloud :test do
         nodes do
           ec2_node "web-1" do
-            roles ["web"]
+            roles ["web", "mail"]
+            cookbook_attributes <<-COOKBOOK_ATTRIBUTES
+              "apache": {
+                "listen_ports": ["81", "8181"],
+                "worker" : {
+                  "startservers" : "5"
+                }
+              },
+              "mysql": {
+                "server_root_password": "XXXXXXXX",
+                "tunable": {
+                  "max_connections": "500"
+                }
+              }
+            COOKBOOK_ATTRIBUTES
           end
         end
       end
@@ -28,6 +42,10 @@ class TestConfigurableNode < Test::Unit::TestCase
       @node.validate
       assert !@node.valid?
       assert @node.validation_errors.any? {|message| !message.index("cookbook_attributes must be a String").nil? }
+    end
+
+    should "have valid JSON" do
+      assert @node.json.eql? "{ \"run_list\": [\"role[web]\", \"role[mail]\"], \"apache\": { \"listen_ports\": [\"81\", \"8181\"], \"worker\" : { \"startservers\" : \"5\" } }, \"mysql\": { \"server_root_password\": \"XXXXXXXX\", \"tunable\": { \"max_connections\": \"500\" } } }"
     end
   end
 end

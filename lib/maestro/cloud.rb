@@ -125,7 +125,7 @@ module Maestro
           else
             @logger.info "chef-solo already installed on Nodes #{@configurable_nodes.keys.inspect}"
           end
-          @logger.info "Running chef-solo on Nodes #{@configurable_nodes.keys.inspect}..."
+          @logger.info "Running chef-solo on Nodes #{@configurable_nodes.keys.inspect}. This may take a few minutes..."
           session = open_ssh_session
           run_chef_solo(session)
           session.close

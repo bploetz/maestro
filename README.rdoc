@@ -184,7 +184,7 @@ The following attributes must be present:
 The following attributes are optional:
 
 - <b>cookbook_attributes</b>: Chef cookbook attribute overrides, in JSON format (see {the Chef documentation}[http://wiki.opscode.com/display/chef/Attributes#Attributes-AttributesinJSON] for more information).
-  Since the attribute JSON format necessitates lots of " characters, the use of heredocs is recomended to avoid manual escaping of " characters. See the example below.
+  Since the attribute JSON format necessitates lots of " characters, the use of heredocs is recomended to avoid manual escaping of " characters and improve readability. See the example below.
 - <b>elastic_ip</b>: The Elastic IP address to associate with this node.
 - <b>ebs_volume_id</b>: The id of the EBS Volume to attach to this node.
 - <b>ebs_device</b>: The device to attach the EBS Volume to.
@@ -198,7 +198,18 @@ An example ec2_node:
       instance_type "m1.small"
       availability_zone "us-east-1b"
       cookbook_attributes <<-COOKBOOK_ATTRIBUTES
-        "apache": { "listen_ports": ["81", "8080"] }
+        "apache": {
+          "listen_ports": ["81", "8181"],
+          "worker" : {
+            "startservers" : "5"
+          }
+        },
+        "mysql": {
+          "server_root_password": "XXXXXXXX",
+          "tunable": {
+            "max_connections": "500"
+          }
+        }
       COOKBOOK_ATTRIBUTES
       elastic_ip "123.45.678.90"
       ebs_volume_id "vol-xxxxxxxx"

@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{the-maestro}
-  s.version = "0.3.1"
+  s.version = "0.3.2"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Brian Ploetz"]
-  s.date = %q{2010-05-21}
+  s.date = %q{2010-05-23}
   s.description = %q{Maestro is a cloud provisioning, configuration, and deployment utility for your Ruby and Ruby On Rails applications.}
   s.extra_rdoc_files = [
     "LICENSE",
@@ -64,6 +64,7 @@ Gem::Specification.new do |s|
      "test/unit/test_aws_rds_node.rb",
      "test/unit/test_cent_os.rb",
      "test/unit/test_cloud.rb",
+     "test/unit/test_configurable_node.rb",
      "test/unit/test_debian.rb",
      "test/unit/test_fedora.rb",
      "test/unit/test_invalid_mode.rb",
@@ -98,6 +99,7 @@ Gem::Specification.new do |s|
      "test/unit/test_aws_rds_node.rb",
      "test/unit/test_cent_os.rb",
      "test/unit/test_cloud.rb",
+     "test/unit/test_configurable_node.rb",
      "test/unit/test_debian.rb",
      "test/unit/test_fedora.rb",
      "test/unit/test_invalid_mode.rb",
