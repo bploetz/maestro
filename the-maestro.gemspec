@@ -5,12 +5,12 @@
 
 Gem::Specification.new do |s|
   s.name = %q{the-maestro}
-  s.version = "0.3.2"
+  s.version = "0.3.3"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Brian Ploetz"]
   s.date = %q{2010-05-23}
-  s.description = %q{Maestro is a cloud provisioning, configuration, and deployment utility for your Ruby and Ruby On Rails applications.}
+  s.description = %q{Maestro is a cloud provisioning and configuration utility for your Ruby and Ruby On Rails applications.}
   s.extra_rdoc_files = [
     "LICENSE",
      "README.rdoc"

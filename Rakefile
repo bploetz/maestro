@@ -6,7 +6,7 @@ begin
   Jeweler::Tasks.new do |gem|
     gem.name = "the-maestro"
     gem.summary = %Q{Maestro: Conduct your clouds.}
-    gem.description = %Q{Maestro is a cloud provisioning, configuration, and deployment utility for your Ruby and Ruby On Rails applications.}
+    gem.description = %Q{Maestro is a cloud provisioning, configuration, and management utility for your Ruby and Ruby On Rails applications.}
     gem.homepage = "http://github.com/bploetz/maestro"
     gem.authors = ["Brian Ploetz"]
     gem.add_development_dependency "thoughtbot-shoulda", "= 2.10.2"

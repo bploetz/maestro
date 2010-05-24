@@ -1,6 +1,6 @@
 <b>Maestro: Conduct your clouds</b>
 
-Maestro is a cloud provisioning, configuration, and deployment utility for your Ruby and Ruby On Rails applications.
+Maestro is a cloud provisioning, configuration, and management utility for your Ruby and Ruby On Rails applications.
 Simply declare the structure of your clouds via configuration files, create {Chef}[http://wiki.opscode.com/display/chef/Home]
 recipes to configure the nodes in your clouds, and Maestro takes care of the rest.
 
@@ -22,7 +22,7 @@ Add the following gem dependency to your Rails project's <code>config/environmen
 
     Rails::Initializer.run do |config|
 
-      config.gem "the-maestro", :lib => "maestro", :version => "0.3.2", :source => "http://gemcutter.org"
+      config.gem "the-maestro", :lib => "maestro", :version => "0.3.3", :source => "http://gemcutter.org"
 
     end
 
