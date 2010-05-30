@@ -262,7 +262,7 @@ module Maestro
         end
         # run chef-solo
         chef_solo_commands = 
-           ["sudo chef-solo -c /tmp/chef-solo.rb -r '#{chef_assets_url()}'"]
+           ["sudo chef-solo -l debug -c /tmp/chef-solo.rb -r '#{chef_assets_url()}'"]
         chef_solo_commands.each do |cmd|
           session.open_channel do |channel|
             channel.request_pty {|ch, success| abort "could not obtain pty" if !success}
