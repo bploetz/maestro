@@ -86,21 +86,6 @@ class TestDebian < Test::Unit::TestCase
     # Tests
     #######################
 
-    context "Debian 6.0" do
-      should "install chef-solo" do
-        @node.ami "ami-daf615b3"
-        @node.ssh_user "root"
-        assert_nothing_raised do
-          @cloud.connect!
-          @cloud.start
-          @cloud.get_configurable_node_hostnames
-          assert !@cloud.chef_solo_installed?[0]
-          @cloud.install_chef_solo
-          assert @cloud.chef_solo_installed?[0]
-        end
-      end
-    end
-
     context "Debian 5.0" do
       should "install chef-solo" do
         @node.ami "ami-dcf615b5"

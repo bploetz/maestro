@@ -156,7 +156,7 @@ module Maestro
             channel.request_pty {|ch, success| abort "could not obtain pty" if !success}
             channel.exec("chef-solo --version") do |ch, success|
               ch.on_data do |ch, data|
-                if !data.include?("Chef: 0.8")
+                if !data.include?("Chef: 0.9")
                   valid = false
                   needs_chef << the_node
                 end

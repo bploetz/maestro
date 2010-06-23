@@ -15,8 +15,8 @@ module Maestro
            "sudo rm /usr/local/src/rubygems-1.3.6.tgz",
            "sudo gem sources -a http://gems.opscode.com",
            "sudo gem install rake --no-rdoc --no-ri",
-           "sudo gem install chef --no-rdoc --no-ri --version '= 0.8.14'",
-           "sudo ln -sfv $(gem environment gemdir)/gems/chef-0.8.14/bin/chef-solo /usr/bin/chef-solo"]
+           "sudo gem install chef --no-rdoc --no-ri --version '= 0.9.0'",
+           "sudo ln -sfv $(gem environment gemdir)/gems/chef-0.9.0/bin/chef-solo /usr/bin/chef-solo"]
       end
     end
   end
