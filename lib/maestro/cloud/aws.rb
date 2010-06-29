@@ -686,8 +686,10 @@ module Maestro
 
       # ensures the project's Chef cookbooks and roles are deployed to the configured S3 Bucket
       def upload_chef_assets
-        bucket = AWS::S3::Bucket.find(chef_bucket)
-        if bucket.nil?
+        bucket = nil
+        begin
+          bucket = AWS::S3::Bucket.find(chef_bucket)
+        rescue AWS::S3::ResponseError
           @logger.info "Creating S3 Bucket '#{chef_bucket}'..."
           bucket = AWS::S3::Bucket.create(chef_bucket, :access => :private)
           @logger.info "Created S3 Bucket '#{chef_bucket}'" if !bucket.nil?
