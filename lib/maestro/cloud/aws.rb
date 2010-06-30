@@ -733,9 +733,9 @@ module Maestro
 
       # Ensures that the Nodes of this Cloud are terminated
       def ensure_nodes_terminated
-        ensure_elb_nodes_terminated
-        ensure_ec2_nodes_terminated
-        ensure_rds_nodes_terminated
+        ensure_elb_nodes_terminated if !@elb_nodes.empty?
+        ensure_ec2_nodes_terminated if !@ec2_nodes.empty?
+        ensure_rds_nodes_terminated if !@rds_nodes.empty?
       end
 
       # Ensures that the Ec2 Nodes of this Cloud are terminated
