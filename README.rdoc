@@ -38,7 +38,7 @@ You'll interact with Maestro through custom Rake tasks that Maestro adds to your
 
     require 'maestro/tasks'
 
-Make sure the Maestro gem in successfully installed before adding this line to your Rails project's Rakefile.
+Make sure the Maestro gem is successfully installed before adding this line to your Rails project's Rakefile.
 
 === Configuration
 
