@@ -22,7 +22,7 @@ Add the following gem dependency to your Rails project's <code>config/environmen
 
     Rails::Initializer.run do |config|
 
-      config.gem "the-maestro", :lib => "maestro", :version => "0.3.7", :source => "http://gemcutter.org"
+      config.gem "the-maestro", :lib => "maestro", :version => "0.3.8", :source => "http://gemcutter.org"
 
     end
 
@@ -346,11 +346,70 @@ Node-specific messages are not logged to STDOUT, but only to the node's log file
 consult the individual node log files for information.
 
 
-== Using Maestro with a stand alone Ruby application
+== Using Maestro stand alone
+
+Maestro can also be used in stand alone mode, as a simple command line cloud management utility.
+
+
+=== Installation
+
+Install the Maestro gem by running the following command:
 
     sudo gem install the-maestro
 
-TODO...
+=== Requirements
+
+Maestro requires the following in order to be run in stand alone mode:
+
+- A base directory structure
+- An environment variable <code>MAESTRO_DIR</code> set to the location of the base directory
+- A Rake file
+
+==== Create the base directory structure
+
+Maestro requires a directory representing your project. This directory will house your Rake file, and a subdirectory named "config" where all of your Maestro configuration files will live.
+
+For example, suppose we are running a Hadoop cluster in the cloud. We would create the following directory structure:
+
+    mkdir /home/bob/projects/hadoop-cluster
+    mkdir /home/bob/projects/hadoop-cluster/config
+
+==== Set the <code>MAESTRO_DIR</code> environment variable
+
+When run in stand alone mode, Maestro requires that an environment variable named <code>MAESTRO_DIR</code> be set, pointing at the base directory defined above.
+The mechanism for setting environment variables is operating system and/or shell specific, but as an example:
+
+    export MAESTRO_DIR="/home/bob/projects/hadoop-cluster"
+
+Please note that if you wish to use Maestro with multiple stand alone projects, you may want to set the <code>MAESTRO_DIR</code> environment variable in shell/batch scripts.
+
+==== Create a Rakefile
+
+You'll interact with Maestro through Rake tasks. Create a Rakefile in your base directory, and add the following:
+
+    require 'rubygems'
+    require 'rake'
+    require 'maestro/tasks'
+
+Make sure the Maestro gem is successfully installed before adding these lines to your Rakefile.
+
+==== Create the Maestro configuration directory structure
+
+To create the Maestro configuration directory structure, run the following Rake task within the base directory containing your Rake file:
+
+  rake maestro:create_config_dirs
+
+This will create the following directory structure within your project's config/ directory:
+
+  $MAESTRO_DIR/config/maestro/clouds/ - the directory which contains your cloud configuration files
+  $MAESTRO_DIR/config/maestro/cookbooks/ - the directory which contains your Chef cookbooks
+  $MAESTRO_DIR/config/maestro/roles/ - the directory which contains your Chef JSON Roles files
+
+If these directories already exist when running <code>rake maestro:create_config_dirs</code>, no action is taken.
+
+=== Conduct!
+
+At this point, you can use Maestro as described above. Define your clouds, create your Chef assets, and conduct!
 
 
 == Where To Get Help
