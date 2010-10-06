@@ -5,7 +5,7 @@ class TestMaestro < Test::Unit::TestCase
 
   context "Maestro" do
 
-    context "Rails mode" do
+    context "Rails 2 mode" do
       setup do
         Object.const_set("RAILS_ROOT", File.join(File.dirname(File.expand_path(__FILE__)), 'fixtures', 'rails'))
       end
@@ -33,10 +33,59 @@ class TestMaestro < Test::Unit::TestCase
           assert_log_directories_do_not_exist("#{RAILS_ROOT}/log")
         end
       end
+
+      should "get clouds" do
+        assert_nothing_raised do
+          Maestro.create_config_dirs
+          Maestro.clouds
+          delete_config_directories("#{RAILS_ROOT}/config")
+        end
+      end
+    end
+
+
+    context "Rails 3 mode" do
+      setup do
+        class ::Rails
+          def self.root
+            File.join(File.dirname(File.expand_path(__FILE__)), 'fixtures', 'rails')
+          end
+        end
+      end
+
+      teardown do
+        class ::Rails
+          class <<self
+            undef :root if defined?(Rails.root)
+          end
+        end
+      end
+
+      should "create config dirs" do
+        assert_nothing_raised do
+          assert_config_directories_do_not_exist("#{Rails.root}/config")
+          Maestro.create_config_dirs
+          assert_config_directories_exist("#{Rails.root}/config")
+          delete_config_directories("#{Rails.root}/config")
+          assert_config_directories_do_not_exist("#{Rails.root}/config")
+        end
+      end
+
+      should "create log dirs" do
+        assert_nothing_raised do
+          assert_log_directories_do_not_exist("#{Rails.root}/log")
+          Maestro.create_log_dirs
+          assert_log_directories_exist("#{Rails.root}/log")
+          delete_log_directories("#{Rails.root}/log")
+          assert_log_directories_do_not_exist("#{Rails.root}/log")
+        end
+      end
       
       should "get clouds" do
         assert_nothing_raised do
+          Maestro.create_config_dirs
           Maestro.clouds
+          delete_config_directories("#{Rails.root}/config")
         end
       end
     end
@@ -75,7 +124,10 @@ class TestMaestro < Test::Unit::TestCase
 
       should "get clouds" do
         assert_nothing_raised do
+          base_dir = ENV[Maestro::MAESTRO_DIR_ENV_VAR]
+          Maestro.create_config_dirs
           Maestro.clouds
+          delete_config_directories("#{base_dir}/config")
         end
       end
     end

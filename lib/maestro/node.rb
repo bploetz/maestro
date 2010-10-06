@@ -74,7 +74,7 @@ module Maestro
             @logger.add(outputter)
           end
         rescue RuntimeError => rerr
-          if !rerr.message.eql?("Maestro not configured correctly. Either RAILS_ROOT or ENV['MAESTRO_DIR'] must be defined")
+          if !rerr.message.eql?("Maestro not configured correctly. Either RAILS_ROOT, Rails.root, or ENV['MAESTRO_DIR'] must be defined")
             @logger.error "Unexpected Error"
             @logger.error rerr
           end

@@ -1,12 +1,13 @@
 require "maestro/dsl_property"
 require "find"
-require "ftools"
+require "fileutils"
 require "maestro/cloud"
 require "maestro/cloud/aws"
 require "maestro/operating_system"
 require "log4r"
 require "log4r/configurator"
 require "maestro/log4r/console_formatter"
+require 'maestro/railtie' if defined?(Rails) && Rails::VERSION::MAJOR == 3
 
 
 def aws_cloud(name, &block)
@@ -53,12 +54,12 @@ module Maestro
   #     MAESTRO_DIR/config/maestro/cookbooks
   #     MAESTRO_DIR/config/maestro/roles
   def self.create_config_dirs
-    if defined? RAILS_ROOT
+    if rails?
       create_configs(rails_config_dir)
     elsif ENV.has_key? MAESTRO_DIR_ENV_VAR
       create_configs(standalone_config_dir)
     else
-      raise "Maestro not configured correctly. Either RAILS_ROOT or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
+      raise "Maestro not configured correctly. Either RAILS_ROOT, Rails.root, or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
     end
   end
 
@@ -75,12 +76,12 @@ module Maestro
   #     MAESTRO_DIR/log/maestro
   #     MAESTRO_DIR/log/maestro/clouds
   def self.create_log_dirs
-    if defined? RAILS_ROOT
+    if rails?
       create_logs(rails_log_dir)
     elsif ENV.has_key? MAESTRO_DIR_ENV_VAR
       create_logs(standalone_log_dir)
     else
-      raise "Maestro not configured correctly. Either RAILS_ROOT or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
+      raise "Maestro not configured correctly. Either RAILS_ROOT, Rails.root, or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
     end
   end
 
@@ -88,45 +89,45 @@ module Maestro
   # * element[0] boolean indicating whether your maestro configs are valid
   # * element[1] Array of Strings containing a report of the validation
   def self.validate_configs
-    if defined? RAILS_ROOT
+    if rails?
       validate_rails_config
     elsif ENV.has_key? MAESTRO_DIR_ENV_VAR
       validate_standalone_config
     else
-      return [false, ["Maestro not configured correctly. Either RAILS_ROOT or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"]]
+      return [false, ["Maestro not configured correctly. Either RAILS_ROOT, Rails.root, or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"]]
     end
   end
 
   # Returns a Hash of Clouds defined in the Maestro clouds configuration directory
   def self.clouds
-    if defined? RAILS_ROOT
+    if rails?
       get_clouds(clouds_config_dir(rails_maestro_config_dir))
     elsif ENV.has_key? MAESTRO_DIR_ENV_VAR
       get_clouds(clouds_config_dir(standalone_maestro_config_dir))
     else
-      raise "Maestro not configured correctly. Either RAILS_ROOT or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
+      raise "Maestro not configured correctly. Either RAILS_ROOT, Rails.root, or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
     end
   end
 
   # Returns the top level log directory
   def self.log_directory
-    if defined? RAILS_ROOT
+    if rails?
       rails_log_dir
     elsif ENV.has_key? MAESTRO_DIR_ENV_VAR
       standalone_log_dir
     else
-      raise "Maestro not configured correctly. Either RAILS_ROOT or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
+      raise "Maestro not configured correctly. Either RAILS_ROOT, Rails.root, or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
     end
   end
 
   # Returns the maestro log directory
   def self.maestro_log_directory
-    if defined? RAILS_ROOT
+    if rails?
       rails_log_dir + "/maestro"
     elsif ENV.has_key? MAESTRO_DIR_ENV_VAR
       standalone_log_dir + "/maestro"
     else
-      raise "Maestro not configured correctly. Either RAILS_ROOT or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
+      raise "Maestro not configured correctly. Either RAILS_ROOT, Rails.root, or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
     end
   end
 
@@ -137,12 +138,12 @@ module Maestro
     require 'archive/tar/minitar'
 
     dir = nil
-    if defined? RAILS_ROOT
+    if rails?
       dir = rails_maestro_config_dir
     elsif ENV.has_key? MAESTRO_DIR_ENV_VAR
       dir = standalone_maestro_config_dir
     else
-      raise "Maestro not configured correctly. Either RAILS_ROOT or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
+      raise "Maestro not configured correctly. Either RAILS_ROOT, Rails.root, or ENV['#{MAESTRO_DIR_ENV_VAR}'] must be defined"
     end
     temp_file = Dir.tmpdir + "/" + MAESTRO_CHEF_ARCHIVE
     File.delete(temp_file) if File.exist?(temp_file)
@@ -170,6 +171,16 @@ module Maestro
 
 
   private
+
+  # Rails environment detected?
+  def self.rails?
+    defined?(RAILS_ROOT) || (defined?(Rails) && defined?(Rails.root) && Rails.root)
+  end
+
+  # Rails 3 environment detected?
+  def self.rails3?
+    defined?(Rails) && Rails::VERSION::MAJOR == 3
+  end
 
   # Creates the Maestro config directory structure in the given directory
   #
@@ -292,16 +303,25 @@ module Maestro
     return [valid, error_messages]
   end
 
+  def self.rails_root
+    root = if defined?(Rails.root) && Rails.root
+      Rails.root
+    else
+      RAILS_ROOT
+    end
+    root
+  end
+
   def self.rails_config_dir
-    "#{RAILS_ROOT}/config"
+    "#{rails_root}/config"
   end
 
   def self.rails_log_dir
-    "#{RAILS_ROOT}/log"
+    "#{rails_root}/log"
   end
 
   def self.rails_maestro_config_dir
-    "#{RAILS_ROOT}#{MAESTRO_RAILS_CONFIG_DIRECTORY}"
+    "#{rails_root}#{MAESTRO_RAILS_CONFIG_DIRECTORY}"
   end
 
   def self.standalone_maestro_config_dir

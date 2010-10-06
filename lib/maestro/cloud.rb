@@ -1,4 +1,4 @@
-require "ftools"
+require "fileutils"
 require "maestro/role"
 require "maestro/node"
 require 'maestro/validator'
@@ -321,7 +321,7 @@ module Maestro
           outputter = Log4r::FileOutputter.new("#{@name}-file", :formatter => FileFormatter.new, :filename => cloud_log_file, :truncate => false)
           @logger.add(outputter)
         rescue RuntimeError => rerr
-          if !rerr.message.eql?("Maestro not configured correctly. Either RAILS_ROOT or ENV['MAESTRO_DIR'] must be defined")
+          if !rerr.message.eql?("Maestro not configured correctly. Either RAILS_ROOT, Rails.root, or ENV['MAESTRO_DIR'] must be defined")
             @logger.error "Unexpected Error"
             @logger.error rerr
           end

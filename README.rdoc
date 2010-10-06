@@ -12,29 +12,45 @@ Maestro currently supports the following Linux distributions:
  Debian (5.0)
  Fedora (8)
  CentOS (5.4)
+ 
+Maestro has been tested with the following Ruby versions (thanks {RVM}[http://rvm.beginrescueend.com]!):
+
+MRI (1.8.7, 1.9.1, 1.9.2)
+JRuby (1.5.2)
 
 
 == Using Maestro with Ruby On Rails
 
-=== Installation
+=== Installation with Ruby On Rails 3
+
+Add the following gem dependency to your Rails project's <code>Gemfile</code>:
+
+    gem 'the-maestro', '0.4.0', :require => 'maestro'
+
+Then run the following to install the Maestro gem:
+
+    bundle install
+
+
+=== Installation with Ruby On Rails 2
 
 Add the following gem dependency to your Rails project's <code>config/environment.rb</code> file:
 
     Rails::Initializer.run do |config|
 
-      config.gem "the-maestro", :lib => "maestro", :version => "0.3.9", :source => "http://gemcutter.org"
+      config.gem "the-maestro", :lib => "maestro", :version => "0.4.0", :source => "http://gemcutter.org"
 
     end
 
 Then run the following to install the Maestro gem:
 
-    sudo rake gems:install
+    rake gems:install
 
 You may optionally unpack Maestro into vendor/gems by running:
 
-    sudo rake gems:unpack:dependencies
+    rake gems:unpack:dependencies
 
-You'll interact with Maestro through custom Rake tasks that Maestro adds to your Rails project. Until {this}[https://rails.lighthouseapp.com/projects/8994/tickets/59] Rails issue is resolved, you'll need to add this to your Rails project's Rakefile:
+You'll interact with Maestro through custom Rake tasks that Maestro adds to your Rails project. Do to {this}[https://rails.lighthouseapp.com/projects/8994/tickets/59] issue in Rails 2 (fixed in Rails 3), you'll need to add this to your Rails project's Rakefile:
 
     require 'maestro/tasks'
 
@@ -355,7 +371,7 @@ Maestro can also be used in stand alone mode, as a simple command line cloud man
 
 Install the Maestro gem by running the following command:
 
-    sudo gem install the-maestro
+    gem install the-maestro
 
 === Requirements
 
