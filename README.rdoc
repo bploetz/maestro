@@ -50,7 +50,7 @@ You may optionally unpack Maestro into vendor/gems by running:
 
     rake gems:unpack:dependencies
 
-You'll interact with Maestro through custom Rake tasks that Maestro adds to your Rails project. Do to {this}[https://rails.lighthouseapp.com/projects/8994/tickets/59] issue in Rails 2 (fixed in Rails 3), you'll need to add this to your Rails project's Rakefile:
+You'll interact with Maestro through custom Rake tasks that Maestro adds to your Rails project. Due to {this}[https://rails.lighthouseapp.com/projects/8994/tickets/59] issue in Rails 2 (fixed in Rails 3), you'll need to add this to your Rails project's Rakefile:
 
     require 'maestro/tasks'
 
