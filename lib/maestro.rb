@@ -364,6 +364,7 @@ module Maestro
   # Returns and array of all Cloud files found in clouds_directory
   def self.get_cloud_config_files(clouds_directory)
     config_files = []
+    return config_files if !File.exists?(clouds_directory)
     Find.find(clouds_directory) do |path|
       if FileTest.file?(path) && (File.extname(path).eql?(".rb"))
         config_files << path

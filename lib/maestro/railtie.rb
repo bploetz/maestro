@@ -1,7 +1,5 @@
-#require 'maestro'
 require 'rails'
 require "active_model/railtie"
-
 
 module Maestro
   class Railtie < Rails::Railtie
