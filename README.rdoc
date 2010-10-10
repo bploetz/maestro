@@ -1,4 +1,4 @@
-<b>Maestro: Conduct your clouds</b>
+== Maestro: Conduct your clouds
 
 Maestro is a cloud provisioning, configuration, and management utility for your Ruby and Ruby On Rails applications.
 Simply declare the structure of your clouds via configuration files, create {Chef}[http://wiki.opscode.com/display/chef/Home]
@@ -30,6 +30,12 @@ Add the following gem dependency to your Rails project's <code>Gemfile</code>:
 Then run the following to install the Maestro gem:
 
     bundle install
+
+You'll interact with Maestro through custom Rake tasks that Maestro adds to your Rails 3 project.
+When running <code>rake</code> within the context of your Rails 3 application, prefix the call to rake with
+<code>bundle exec</code>. For example:
+
+    bundle exec rake maestro:validate_configs
 
 
 === Installation with Ruby On Rails 2
@@ -431,7 +437,8 @@ At this point, you can use Maestro as described above. Define your clouds, creat
 == Where To Get Help
 
 The {Maestro Users Google Group}[http://groups.google.com/group/maestro-users] is the recommended place to get help.
-
+An {example Rails 3 application}[http://github.com/bploetz/maestro-rails3-example] can be used as a starting point for creating your own
+application and cookbooks.
 
 == Contributing
 Please use the {Issues}[http://github.com/bploetz/maestro/issues] page on the Maestro GitHub site to report bugs or feature requests.

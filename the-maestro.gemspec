@@ -34,6 +34,7 @@ Gem::Specification.new do |s|
      "lib/maestro/operating_system/debian.rb",
      "lib/maestro/operating_system/fedora.rb",
      "lib/maestro/operating_system/ubuntu.rb",
+     "lib/maestro/railtie.rb",
      "lib/maestro/role.rb",
      "lib/maestro/tasks.rb",
      "lib/maestro/validator.rb",
