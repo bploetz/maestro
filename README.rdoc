@@ -437,6 +437,7 @@ At this point, you can use Maestro as described above. Define your clouds, creat
 == Where To Get Help
 
 The {Maestro Users Google Group}[http://groups.google.com/group/maestro-users] is the recommended place to get help.
+
 An {example Rails 3 application}[http://github.com/bploetz/maestro-rails3-example] can be used as a starting point for creating your own
 application and cookbooks.
 
