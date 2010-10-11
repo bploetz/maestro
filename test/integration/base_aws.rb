@@ -37,6 +37,9 @@ module BaseAws
   #   
   #     # Name of the S3 bucket to store Chef assets in
   #     :chef_bucket => "maestro-tests-aws.XXXXXXXX.com"
+  #
+  #     # Name of the region to run the tests in. Must match region names in Maestro::Cloud::Aws::REGIONS
+  #     :region => "us-east"
   #  }
   #
   # Make sure you set the appropriate permissions on this file, and delete it when you're done running the integration tests.
@@ -59,10 +62,20 @@ module BaseAws
     raise "Invalid Maestro::Cloud::Aws integration test config file: ~/#{@config_file_name}. Missing :aws_access_key key" if !@credentials.has_key?(:aws_access_key)
     raise "Invalid Maestro::Cloud::Aws integration test config file: ~/#{@config_file_name}. Missing :aws_secret_access_key key" if !@credentials.has_key?(:aws_secret_access_key)
     raise "Invalid Maestro::Cloud::Aws integration test config file: ~/#{@config_file_name}. Missing :chef_bucket key" if !@credentials.has_key?(:chef_bucket)
+    raise "Invalid Maestro::Cloud::Aws integration test config file: ~/#{@config_file_name}. Missing :region key" if !@credentials.has_key?(:region)
 
-    @ec2 = AWS::EC2::Base.new(:access_key_id => @credentials[:aws_access_key], :secret_access_key => @credentials[:aws_secret_access_key], :use_ssl => true)
-    @elb = AWS::ELB::Base.new(:access_key_id => @credentials[:aws_access_key], :secret_access_key => @credentials[:aws_secret_access_key], :use_ssl => true)
-    @rds = AWS::RDS::Base.new(:access_key_id => @credentials[:aws_access_key], :secret_access_key => @credentials[:aws_secret_access_key], :use_ssl => true)
+    @ec2 = AWS::EC2::Base.new(:access_key_id => @credentials[:aws_access_key],
+                              :secret_access_key => @credentials[:aws_secret_access_key],
+                              :use_ssl => true,
+                              :server => Maestro::Cloud::Aws::EC2_ENDPOINTS[@credentials[:region]])
+    @elb = AWS::ELB::Base.new(:access_key_id => @credentials[:aws_access_key],
+                              :secret_access_key => @credentials[:aws_secret_access_key],
+                              :use_ssl => true,
+                              :server => Maestro::Cloud::Aws::ELB_ENDPOINTS[@credentials[:region]])
+    @rds = AWS::RDS::Base.new(:access_key_id => @credentials[:aws_access_key],
+                              :secret_access_key => @credentials[:aws_secret_access_key],
+                              :use_ssl => true,
+                              :server => Maestro::Cloud::Aws::RDS_ENDPOINTS[@credentials[:region]])
     AWS::S3::Base.establish_connection!(:access_key_id => @credentials[:aws_access_key], :secret_access_key => @credentials[:aws_secret_access_key], :use_ssl => true)
 
     # keep track of the Elastic IPs we started with

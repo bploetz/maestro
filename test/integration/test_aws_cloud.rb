@@ -258,7 +258,35 @@ class TestAwsCloud < Test::Unit::TestCase
     # Tests
     #######################
 
-    should "be able to connect to AWS" do
+    should "be able to connect to default AWS endpoints" do
+      assert_nothing_raised do
+        @cloud.connect!
+      end
+    end
+
+    should "be able to connect to us-east AWS endpoints" do
+      @cloud.region("us-east")
+      assert_nothing_raised do
+        @cloud.connect!
+      end
+    end
+
+    should "be able to connect to us-west AWS endpoints" do
+      @cloud.region("us-west")
+      assert_nothing_raised do
+        @cloud.connect!
+      end
+    end
+
+    should "be able to connect to eu AWS endpoints" do
+      @cloud.region("eu")
+      assert_nothing_raised do
+        @cloud.connect!
+      end
+    end
+
+    should "be able to connect to asia-pacific AWS endpoints" do
+      @cloud.region("asia-pacific")
       assert_nothing_raised do
         @cloud.connect!
       end

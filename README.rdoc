@@ -115,6 +115,7 @@ that these capabilities are enabled in your Amazon Web Services account. See the
     aws_access_key "XXXXXXXXXXXXXXXXXXXX"
     aws_secret_access_key "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
     chef_bucket "maestro.yourdomain.com"
+    region "us-east"
     
     roles do
       role "web" do
@@ -162,6 +163,11 @@ The following attributes must be present within your aws_cloud declaration:
 - <b>aws_access_key</b>: Your Amazon Web Services Access Key
 - <b>aws_secret_access_key</b>: Your Amazon Web Services Secret Access Key
 - <b>chef_bucket</b>: The name of the Amazon S3 Bucket where you want your Chef recipes and roles stored. If this Bucket does not exist, Maestro will create it for you. Please note that the Bucket itself, and all objects stored within the Bucket use the canned 'private' access policy, meaning no one but the Bucket owner (i.e. you) may access the Bucket or the objects within it. Maestro uses query string authentication when accessing the objects to ensure the integrity of your data.
+
+The following attributes are optional within your aws_cloud declaration:
+
+- <b>region</b>: The name of an AWS region to run this cloud in. If this attribute is ommitted, the US-East region will be used.
+  Allowed values are: "us-east", "us-west", "eu", "asia-pacific".
 
 
 ==== roles

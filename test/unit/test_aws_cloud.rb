@@ -124,6 +124,13 @@ class TestAwsCloud < Test::Unit::TestCase
       assert @cloud.validation_errors.any? {|message| !message.index("Missing chef_bucket").nil? }
     end
 
+    should "be invalid due to invalid region name" do
+      @cloud.region "foo"
+      @cloud.validate
+      assert !@cloud.valid?
+      assert @cloud.validation_errors.any? {|message| !message.index("Invalid region").nil? }
+    end
+
     should "be valid" do
       @cloud.validate
       assert @cloud.valid?

@@ -22,6 +22,27 @@ module Maestro
       MAESTRO_NODE_PREFIX = "node."
       MAESTRO_ROLE_PREFIX = "role."
       MAESTRO_DEFAULT_ROLE = "default"
+      
+      US_EAST_REGION = "us-east"
+      US_WEST_REGION = "us-west"
+      EU_REGION = "eu"
+      ASIA_PACIFIC_REGION = "asia-pacific"
+      REGIONS = [US_EAST_REGION, US_WEST_REGION, EU_REGION, ASIA_PACIFIC_REGION]
+
+      EC2_ENDPOINTS = {US_EAST_REGION => "ec2.us-east-1.amazonaws.com",
+                       US_WEST_REGION => "ec2.us-west-1.amazonaws.com",
+                       EU_REGION => "ec2.eu-west-1.amazonaws.com",
+                       ASIA_PACIFIC_REGION => "ec2.ap-southeast-1.amazonaws.com"}
+
+      ELB_ENDPOINTS = {US_EAST_REGION => "elasticloadbalancing.us-east-1.amazonaws.com",
+                       US_WEST_REGION => "elasticloadbalancing.us-west-1.amazonaws.com",
+                       EU_REGION => "elasticloadbalancing.eu-west-1.amazonaws.com",
+                       ASIA_PACIFIC_REGION => "elasticloadbalancing.ap-southeast-1.amazonaws.com"}
+
+      RDS_ENDPOINTS = {US_EAST_REGION => "rds.us-east-1.amazonaws.com",
+                       US_WEST_REGION => "rds.us-west-1.amazonaws.com",
+                       EU_REGION => "rds.eu-west-1.amazonaws.com",
+                       ASIA_PACIFIC_REGION => "rds.ap-southeast-1.amazonaws.com"}
 
       # Array of all ec2 security groups names in this Cloud
       attr_reader :ec2_security_groups
@@ -41,7 +62,7 @@ module Maestro
       attr_reader :elb_nodes
       # Hash of Rds Nodes
       attr_reader :rds_nodes
-      dsl_property :aws_account_id, :aws_access_key, :aws_secret_access_key, :chef_bucket
+      dsl_property :aws_account_id, :aws_access_key, :aws_secret_access_key, :chef_bucket, :region
 
       def initialize(name, cfg_file=nil, &block)
         @ec2_nodes = Hash.new
@@ -98,9 +119,19 @@ module Maestro
 
       # establishes a connection to Amazon
       def connect!
-        @ec2 = AWS::EC2::Base.new(:access_key_id => aws_access_key, :secret_access_key => aws_secret_access_key, :use_ssl => true)
-        @elb = AWS::ELB::Base.new(:access_key_id => aws_access_key, :secret_access_key => aws_secret_access_key, :use_ssl => true)
-        @rds = AWS::RDS::Base.new(:access_key_id => aws_access_key, :secret_access_key => aws_secret_access_key, :use_ssl => true)
+        region.nil? || region.empty? ? region_name = US_EAST_REGION : region_name = region
+        @ec2 = AWS::EC2::Base.new(:access_key_id => aws_access_key,
+                                  :secret_access_key => aws_secret_access_key,
+                                  :use_ssl => true,
+                                  :server => EC2_ENDPOINTS[region_name])
+        @elb = AWS::ELB::Base.new(:access_key_id => aws_access_key,
+                                  :secret_access_key => aws_secret_access_key,
+                                  :use_ssl => true,
+                                  :server => ELB_ENDPOINTS[region_name])
+        @rds = AWS::RDS::Base.new(:access_key_id => aws_access_key,
+                                  :secret_access_key => aws_secret_access_key,
+                                  :use_ssl => true,
+                                  :server => RDS_ENDPOINTS[region_name])
         s3_logger = Logger.new(STDOUT)
         s3_logger.level = Logger::FATAL
         AWS::S3::Base.establish_connection!(:access_key_id => aws_access_key, :secret_access_key => aws_secret_access_key, :use_ssl => true)
@@ -886,6 +917,9 @@ module Maestro
         invalidate "Missing aws_access_key" if aws_access_key.nil?
         invalidate "Missing aws_secret_access_key" if aws_secret_access_key.nil?
         invalidate "Missing chef_bucket" if chef_bucket.nil?
+        if !region.nil? && !region.empty?
+          invalidate "Invalid region" if !REGIONS.include?(region)
+        end
       end
 
       # Ensures that the given EC2 security group exists. Creates it if it does not exist.
