@@ -25,7 +25,7 @@ JRuby (1.5.2)
 
 Add the following gem dependency to your Rails project's <code>Gemfile</code>:
 
-    gem 'the-maestro', '0.4.1', :require => 'maestro'
+    gem 'the-maestro', '0.4.2', :require => 'maestro'
 
 Then run the following to install the Maestro gem:
 
@@ -44,7 +44,7 @@ Add the following gem dependency to your Rails project's <code>config/environmen
 
     Rails::Initializer.run do |config|
 
-      config.gem "the-maestro", :lib => "maestro", :version => "0.4.1", :source => "http://gemcutter.org"
+      config.gem "the-maestro", :lib => "maestro", :version => "0.4.2", :source => "http://gemcutter.org"
 
     end
 

@@ -200,8 +200,20 @@ module Maestro
               channel.request_pty {|ch, success| abort "could not obtain pty" if !success}
               channel.exec(cmd) do |ch, success|
                 @logger.progress "."
-                ch.on_data {|ch, data| the_node.logger.info data}
-                ch.on_extended_data {|ch, data| the_node.logger.error }
+                ch.on_data do |ch2, data2|
+                  begin
+                    the_node.logger.info data2
+                  rescue StandardError => err
+                    the_node.logger.error "Unexpected error logging: #{err.to_s}"
+                  end
+                end
+                ch.on_extended_data do |ch2, data2|
+                  begin
+                    the_node.logger.error data2
+                  rescue StandardError => err
+                    the_node.logger.error "Unexpected error logging: #{err.to_s}"
+                  end
+                end
               end
             end
           end
@@ -274,8 +286,20 @@ module Maestro
             else
               node_cmd = cmd + " -j '#{node_json_url(the_node)}'"
               channel.exec(node_cmd) do |ch, success|
-                ch.on_data {|ch2, data2| the_node.logger.info data2}
-                ch.on_extended_data {|ch2, data2| the_node.logger.error data2}
+                ch.on_data do |ch2, data2|
+                  begin
+                    the_node.logger.info data2
+                  rescue StandardError => err
+                    the_node.logger.error "Unexpected error logging: #{err.to_s}"
+                  end
+                end
+                ch.on_extended_data do |ch2, data2|
+                  begin
+                    the_node.logger.error data2
+                  rescue StandardError => err
+                    the_node.logger.error "Unexpected error logging: #{err.to_s}"
+                  end
+                end
               end
             end
           end
